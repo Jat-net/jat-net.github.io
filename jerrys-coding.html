@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coding-and-fun</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Outfit:wght@300;600;900&family=Orbitron:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Slab:wght@400;700&family=Lobster&family=Pacifico&family=Dancing+Script:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@300;600&family=Merriweather:wght@300;700&family=Nunito:wght@300;700&family=Poppins:wght@300;600&family=Ubuntu:wght@300;700&family=Lato:wght@300;700&family=Montserrat:wght@300;700&family=Source+Code+Pro&family=Fira+Code&family=Space+Mono&family=Bebas+Neue&family=Righteous&family=Press+Start+2P&family=Cinzel:wght@400;700&family=Satisfy&family=Caveat:wght@400;700&family=Architects+Daughter&family=Permanent+Marker&family=Kalam:wght@300;700&family=Indie+Flower&family=Special+Elite&family=Creepster&family=Fredoka+One&family=Boogaloo&family=Bangers&family=Chewy&family=Exo+2:wght@300;700&family=Rajdhani:wght@300;700&family=Audiowide&family=Share+Tech+Mono&display=swap">
+<style>
+:root{--bg:#202124;--panel:#303134;--accent:#a855f7;--neon:#22c55e;--text:#e8eaed;--border:#3c4043;--google-blue:#8ab4f8;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
+#loader{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;}
+.spinner{width:40px;height:40px;border:4px solid #333;border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.url-header{background:#171717;padding:10px 20px;display:flex;align-items:center;border-bottom:1px solid var(--border);gap:15px;}
+#topUrlBar{flex:1;background:#000;border-radius:4px;padding:8px 15px;color:var(--neon);font-family:'JetBrains Mono';border:1px solid #333;outline:none;}
+.sys-nav{background:#202124;padding:10px 20px;display:flex;gap:10px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;}
+#fbStatus{margin-left:auto;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:700;letter-spacing:.5px;}
+#fbStatus.connected{background:#14532d;color:#22c55e;}
+#fbStatus.disconnected{background:#450a0a;color:#f87171;}
+#fbStatus.loading{background:#312e81;color:#a5b4fc;}
+#userChip{display:none;font-size:12px;color:#bdc1c6;padding:4px 10px;background:#303134;border-radius:20px;border:1px solid var(--border);cursor:pointer;white-space:nowrap;}
+.search-center-container{padding:40px 20px 20px;display:flex;flex-direction:column;align-items:center;}
+.search-box-wrapper{display:flex;align-items:center;background:var(--panel);border:1px solid #5f6368;border-radius:30px;width:100%;max-width:600px;padding:5px 20px;}
+#mainSearch{flex:1;background:transparent;border:none;padding:12px;color:white;font-size:16px;outline:none;}
+.editor-container{padding:20px;display:flex;flex-direction:column;gap:8px;height:100%;}
+.doc-toolbar{background:#2a2a2e;padding:5px 10px;display:flex;gap:5px;align-items:center;flex-wrap:wrap;color:#e8eaed;border-bottom:1px solid #3c4043;max-height:36px;overflow:hidden;transition:max-height 0.3s ease;}
+.doc-toolbar.open{max-height:200px;}
+.toolbar-toggle{background:#2a2a2e;color:#e8eaed;border:none;width:100%;padding:4px;cursor:pointer;font-size:11px;text-align:center;letter-spacing:1px;flex-shrink:0;}
+.doc-toolbar button,.doc-toolbar select{padding:4px 7px;cursor:pointer;border:1px solid transparent;background:#3c4043;color:#e8eaed;border-radius:4px;font-size:13px;}
+.doc-toolbar button:hover{background:#5f6368;}
+#fontSizeInput{width:50px;padding:3px 5px;border:1px solid #5f6368;border-radius:4px;font-size:13px;text-align:center;background:#303134;color:white;}
+#editorArea{position:relative;overflow:hidden;isolation:isolate;width:100%;height:100%;flex-shrink:0;}
+#richEditor{background:white;width:100%;height:100%;display:block;pointer-events:none;}
+#imgDragOverlay{position:absolute;inset:0;pointer-events:none;z-index:10;overflow:hidden;}
+.img-card{position:absolute;cursor:move;user-select:none;pointer-events:all;display:inline-block;overflow:hidden;}
+.img-card img{display:block;border-radius:6px;width:100%;height:100%;object-fit:contain;pointer-events:none;}
+.img-card .ic-handle{position:absolute;bottom:2px;right:2px;width:14px;height:14px;background:var(--accent);border:2px solid white;border-radius:50%;cursor:se-resize;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.5);}
+.img-card .ic-del{position:absolute;top:2px;right:2px;width:18px;height:18px;background:#ef4444;color:white;border:none;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;line-height:1;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.5);}
+.html-card{border:2px dashed var(--accent);border-radius:6px;background:rgba(255,255,255,0.95);padding:4px;width:100%;height:100%;box-sizing:border-box;overflow:hidden;}
+.btn{padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;border:none;font-size:12px;white-space:nowrap;}
+.btn-blue{background:var(--google-blue);color:#202124;}
+.btn-purple{background:var(--accent);color:white;}
+.btn-green{background:#22c55e;color:#000;}
+.btn-dark{background:#3c4043;color:white;}
+.btn-red{background:#ef4444;color:white;}
+.btn-orange{background:#f97316;color:white;}
+#main-stage{height:calc(100vh - 200px);overflow-y:auto;}
+.results-page{padding:20px 15%;}
+.res-item{margin-bottom:25px;}
+.res-title{color:var(--google-blue);font-size:20px;cursor:pointer;}
+.dir-item{background:rgba(255,255,255,.05);padding:15px;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.float-win{position:fixed;background:#1a1a1e;border:1px solid var(--border);border-radius:10px;z-index:10000;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.7);min-width:260px;min-height:180px;}
+.float-win-bar{background:#2a2a2e;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;cursor:move;user-select:none;border-bottom:1px solid var(--border);flex-shrink:0;}
+.float-win-title{font-size:13px;font-weight:700;color:var(--text);}
+.float-win-btns{display:flex;gap:6px;}
+.float-win-btns button{border:none;border-radius:4px;width:24px;height:24px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
+.fw-close{background:#ef4444;color:white;}
+.fw-full{background:#f59e0b;color:#000;}
+.float-win-body{flex:1;overflow:hidden;position:relative;}
+.float-win-resize{position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:se-resize;background:linear-gradient(135deg,transparent 50%,#5f6368 50%);border-radius:0 0 8px 0;}
+.img-upload-badge{display:inline-flex;align-items:center;gap:6px;background:#1e293b;border:1px solid #334155;border-radius:20px;padding:4px 12px;font-size:11px;color:#94a3b8;font-family:'JetBrains Mono',monospace;}
+.img-upload-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse-dot 1s ease-in-out infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.7);}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spinner"></div></div>
+<div class="url-header">
+  <div style="font-weight:900;color:var(--accent);min-width:110px;font-size:15px;">LEARNING AND FUN 📚</div>
+  <input id="topUrlBar" placeholder="enter_url_directly.jat" onkeydown="if(event.key==='Enter')executeSearch()">
+  <button class="btn btn-blue" onclick="executeSearch()">ENTER</button>
+</div>
+<div class="sys-nav">
+  <button class="btn btn-purple" onclick="requireLogin(createNewSite)">MAKE NEW SITE</button>
+  <button class="btn btn-dark" onclick="withLoading(()=>{requireLogin(()=>{renderMySites();toggleView('my-sites');});})">MY SITES ✎</button>
+  <button class="btn btn-dark" onclick="goHome()">HOME</button>
+  <button class="btn btn-dark" onclick="openDebugPanel()">DEBUGGING PANEL</button>
+  <span id="userChip" onclick="handleSignOut()" title="Click to sign out">👤 <span id="userChipLabel"></span> · Sign out</span>
+  <span id="fbStatus" class="loading">⏳ Connecting…</span>
+</div>
+<div class="search-center-container" id="searchUI">
+  <div class="search-box-wrapper">
+    <input id="mainSearch" placeholder="Search Bar..." onkeydown="if(event.key==='Enter')withLoading(()=>executeSearch())">
+    <span style="cursor:pointer;" onclick="withLoading(()=>executeSearch())">🔍</span>
+  </div>
+</div>
+<main id="main-stage">
+  <div id="results-view" style="display:none;" class="results-page"></div>
+  <div id="creator" style="display:none;" class="editor-container">
+    <input id="siteName" placeholder="Untitled Site" style="display:none;">
+    <button class="toolbar-toggle" onclick="this.nextElementSibling.classList.toggle('open')">▼ TOOLS</button>
+    <div class="doc-toolbar">
+      <select id="fontFamilySelect" title="Font Family" onmousedown="saveSelBeforeBlur()" onchange="applyFont(this.value)">
+        <optgroup label="── Display ──">
+          <option value="Bebas Neue">Bebas Neue</option><option value="Bangers">Bangers</option><option value="Righteous">Righteous</option><option value="Orbitron">Orbitron</option><option value="Audiowide">Audiowide</option><option value="Exo 2">Exo 2</option><option value="Rajdhani">Rajdhani</option><option value="Oswald">Oswald</option><option value="Montserrat">Montserrat</option><option value="Raleway">Raleway</option><option value="Poppins">Poppins</option><option value="Nunito">Nunito</option><option value="Lato">Lato</option><option value="Ubuntu">Ubuntu</option><option value="Fredoka One">Fredoka One</option><option value="Boogaloo">Boogaloo</option><option value="Chewy">Chewy</option>
+        </optgroup>
+        <optgroup label="── Serif ──">
+          <option value="Playfair Display">Playfair Display</option><option value="Merriweather">Merriweather</option><option value="Roboto Slab">Roboto Slab</option><option value="Cinzel">Cinzel</option>
+        </optgroup>
+        <optgroup label="── Handwriting ──">
+          <option value="Lobster">Lobster</option><option value="Pacifico">Pacifico</option><option value="Dancing Script">Dancing Script</option><option value="Satisfy">Satisfy</option><option value="Caveat">Caveat</option><option value="Kalam">Kalam</option><option value="Indie Flower">Indie Flower</option><option value="Architects Daughter">Architects Daughter</option><option value="Permanent Marker">Permanent Marker</option><option value="Creepster">Creepster</option><option value="Special Elite">Special Elite</option>
+        </optgroup>
+        <optgroup label="── Monospace ──">
+          <option value="JetBrains Mono">JetBrains Mono</option><option value="Source Code Pro">Source Code Pro</option><option value="Fira Code">Fira Code</option><option value="Space Mono">Space Mono</option><option value="Share Tech Mono">Share Tech Mono</option><option value="Press Start 2P">Press Start 2P</option>
+        </optgroup>
+        <optgroup label="── System ──">
+          <option value="Arial">Arial</option><option value="Arial Black">Arial Black</option><option value="Verdana">Verdana</option><option value="Tahoma">Tahoma</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Helvetica">Helvetica</option><option value="Calibri">Calibri</option><option value="Segoe UI">Segoe UI</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option><option value="Garamond">Garamond</option><option value="Courier New">Courier New</option><option value="Monaco">Monaco</option><option value="Consolas">Consolas</option><option value="Comic Sans MS">Comic Sans MS</option><option value="Impact">Impact</option>
+        </optgroup>
+      </select>
+      <input id="fontSizeInput" type="number" value="16" min="6" max="200" title="Font size (px)" onmousedown="saveSelBeforeBlur()" onchange="applyFontSize(this.value)" onkeydown="if(event.key==='Enter'){applyFontSize(this.value);event.preventDefault();}">
+      <button onmousedown="saveSelBeforeBlur()" onclick="restoreSelAndCmd('bold')" title="Bold"><b>B</b></button>
+      <button onmousedown="saveSelBeforeBlur()" onclick="restoreSelAndCmd('italic')" title="Italic"><i>I</i></button>
+      <button onmousedown="saveSelBeforeBlur()" onclick="restoreSelAndCmd('underline')" title="Underline"><u>U</u></button>
+      <button onmousedown="saveSelBeforeBlur()" onclick="restoreSelAndCmd('strikeThrough')" title="Strikethrough"><s>S</s></button>
+      <label title="Text Color" style="cursor:pointer;display:flex;align-items:center;gap:2px;font-size:12px;">A<input type="color" id="colorPicker" value="#000000" style="width:26px;height:26px;border:none;background:none;cursor:pointer;padding:0;" onmousedown="saveSelBeforeBlur()" oninput="applyColor(this.value)" onchange="applyColor(this.value)" onfocus="saveSelBeforeBlur()"></label>
+      <label title="Highlight" style="cursor:pointer;display:flex;align-items:center;gap:2px;font-size:12px;">🖊<input type="color" id="highlightPicker" value="#ffff00" style="width:26px;height:26px;border:none;background:none;cursor:pointer;padding:0;" onmousedown="saveSelBeforeBlur()" oninput="applyHighlight(this.value)"></label>
+      <button onmousedown="saveSelBeforeBlur()" onclick="restoreSelAndCmd('insertUnorderedList')" title="Bullets">• List</button>
+      <button onmousedown="saveSelBeforeBlur()" onclick="restoreSelAndCmd('insertOrderedList')" title="Numbered">1. List</button>
+      <button onclick="insertLink()" title="Link">🔗 Link</button>
+      <label title="Upload image" style="cursor:pointer;display:flex;align-items:center;gap:3px;font-size:12px;background:#1e293b;color:#8ab4f8;border:1px solid #334155;padding:3px 8px;border-radius:4px;font-weight:700;">🖼 IMG<input type="file" id="imgUploadInput" accept="image/*" multiple style="display:none;" onchange="handleEditorImageUpload(this)"></label>
+      <button onclick="insertHTMLElement()" title="Insert HTML" style="background:#8ab4f8;color:#202124;font-weight:700;">＋ HTML</button>
+      <button onclick="insertTextCard()" title="Insert Text Box" style="background:#a855f7;color:white;font-weight:700;">＋ TEXT</button>
+      <button onclick="layerUp()" title="Bring Forward" style="background:#f59e0b;color:#000;font-weight:700;">⬆ LAYER</button>
+      <button onclick="layerDown()" title="Send Backward" style="background:#f59e0b;color:#000;font-weight:700;">⬇ LAYER</button>
+      <label title="Background Color" style="cursor:pointer;display:flex;align-items:center;gap:3px;font-size:12px;background:#e8eaed;padding:3px 7px;border-radius:4px;">🎨 BG<input type="color" id="bgColorPicker" value="#ffffff" style="width:26px;height:22px;border:none;background:none;cursor:pointer;padding:0;" oninput="applyEditorBg(this.value)"></label>
+      <button onmousedown="saveSelBeforeBlur()" onclick="restoreSelAndCmd('undo')" title="Undo">↩</button>
+      <button onmousedown="saveSelBeforeBlur()" onclick="restoreSelAndCmd('redo')" title="Redo">↪</button>
+    </div>
+    <div id="editorArea">
+      <div id="richEditor" contenteditable="true"></div>
+      <div id="imgDragOverlay"></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:6px 10px;background:#1a1a1e;flex-shrink:0;">
+      <button class="btn btn-purple" id="saveBtn" onclick="updateSite()" style="display:none;">💾 UPDATE</button>
+      <button class="btn btn-green" id="publishBtn" onclick="publishSite()">🌐 PUBLISH</button>
+      <span id="uploadStatus" style="display:none;" class="img-upload-badge"><span class="dot"></span><span id="uploadStatusText">Uploading…</span></span>
+    </div>
+  </div>
+  <div id="my-sites" style="display:none;" class="editor-container"><h2>My Created Sites</h2><div id="my-list"></div></div>
+  <div id="debug-panel" style="display:none;" class="editor-container"><h2>🛠 DEBUG CONTROL PANEL</h2><div id="debug-list"></div></div>
+</main>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, browserLocalPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyCXQsxrQRXaSZpRdjzewy9HxhDEF0A11LQ",
+  authDomain:"jerrys-coding.firebaseapp.com",
+  projectId:"jerrys-coding",
+  storageBucket:"jerrys-coding.firebasestorage.app",
+  messagingSenderId:"56030410128",
+  appId:"1:56030410128:web:320cb4e598e374fdfdef15"
+};
+
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
+const auth = getAuth(app);
+
+/* FIX 1: setPersistence is standalone — NOT inside onAuthStateChanged */
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+
+const sitesCol       = collection(db, "sites");
+const usersCol       = collection(db, "users");
+const publicUsersCol = collection(db, "publicUsers");
+
+let netData={}, loggedIn=false, currentUser=null, currentEmail=null;
+let currentUsername=null, isDirty=false, currentSite=null;
+let savedRange=null, editorBgColor='#ffffff';
+
+const OWNER_EMAIL = 'torresjeremiahtorres@gmail.com';
+let IMGBB_KEY = null;
+async function getImgBBKey(){
+  if(IMGBB_KEY) return IMGBB_KEY;
+  if(!loggedIn||!currentUser) throw new Error('Not logged in');
+  const snap=await getDoc(doc(db,'config','keys'));
+  if(!snap.exists()) throw new Error('Config missing');
+  IMGBB_KEY=snap.data().imgbb;
+  return IMGBB_KEY;
+}
+
+/* ── UPLOAD STATUS ── */
+function showUploadStatus(t){const el=document.getElementById('uploadStatus'),tx=document.getElementById('uploadStatusText');if(el&&tx){tx.textContent=t;el.style.display='inline-flex';}}
+function hideUploadStatus(){const el=document.getElementById('uploadStatus');if(el)el.style.display='none';}
+
+/* ── IMGBB UPLOAD ── */
+async function uploadToImgBB(file){
+  const key=await getImgBBKey();
+  const fd=new FormData(); fd.append('image',file);
+  const res=await fetch('https://api.imgbb.com/1/upload?key='+key,{method:'POST',body:fd});
+  const j=await res.json();
+  if(!j.success) throw new Error(j.error?.message||'ImgBB upload failed');
+  return j.data.url;
+}
+
+async function handleEditorImageUpload(input){
+  if(!loggedIn||!currentUser){jAlert('Log in to upload images.');input.value='';return;}
+  const siteName=document.getElementById('siteName').value.trim();
+  if(!siteName){jAlert('Give your site a name before uploading images.');input.value='';return;}
+  const files=Array.from(input.files); if(!files.length) return;
+  input.value=''; let processed=0;
+  for(const file of files){
+    try{
+      showUploadStatus('Uploading '+(processed+1)+' / '+files.length+'…');
+      const url=await uploadToImgBB(file);
+      insertImgCard(url); processed++; isDirty=true;
+    }catch(err){console.error(err);jAlert('Failed to upload "'+file.name+'":<br><small>'+err.message+'</small>');}
+  }
+  hideUploadStatus();
+  if(processed>0) jAlert('✅ '+processed+' image'+(processed>1?'s':'')+' uploaded — drag to position, resize from corner.');
+}
+window.handleEditorImageUpload=handleEditorImageUpload;
+
+/* ── OVERLAY CARD FACTORY ── */
+function _makeOverlayCard(innerEl, extraClass){
+  const overlay=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');
+  const card=document.createElement('div');
+  card.className='img-card'+(extraClass?' '+extraClass:'');
+  card.style.left='30px'; card.style.top='30px';
+  const handle=document.createElement('div'); handle.className='ic-handle';
+  const delBtn=document.createElement('button'); delBtn.className='ic-del'; delBtn.textContent='✕'; delBtn.title='Remove';
+  delBtn.onclick=(e)=>{e.stopPropagation();card.remove();isDirty=true;};
+  card.appendChild(innerEl); card.appendChild(handle); card.appendChild(delBtn);
+  overlay.appendChild(card);
+  card.addEventListener('mousedown',function(e){
+    if(e.target===handle||e.target===delBtn) return;
+    if(extraClass==='html-card'&&e.target!==card){
+      const rect=card.getBoundingClientRect();
+      const onEdge=e.clientX-rect.left<12||rect.right-e.clientX<12||e.clientY-rect.top<12||rect.bottom-e.clientY<12;
+      if(!onEdge) return;
+    }
+    e.preventDefault();
+    const sx=e.clientX,sy=e.clientY,ol=parseInt(card.style.left,10)||0,ot=parseInt(card.style.top,10)||0;
+    const mv=ev=>{card.style.left=(ol+ev.clientX-sx)+'px';card.style.top=(ot+ev.clientY-sy)+'px';};
+    const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+    document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+  });
+  handle.addEventListener('mousedown',function(e){
+    e.preventDefault(); e.stopPropagation();
+    const sx=e.clientX,sy=e.clientY,r=card.getBoundingClientRect(),sw=r.width,sh=r.height;
+    const mv=ev=>{
+  const nw=Math.max(40,sw+ev.clientX-sx);
+  const nh=Math.max(20,sh+ev.clientY-sy);
+  card.style.width=nw+'px';
+  card.style.height=nh+'px';
+  innerEl.style.width='100%';
+  innerEl.style.height='100%';
+  const iframeEl=innerEl.querySelector('iframe');
+  if(iframeEl){iframeEl.style.width='100%';iframeEl.style.height='100%';}
+};
+    const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+    document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+  });
+  return card;
+}
+
+function insertImgCard(src){
+  const img=document.createElement('img');
+  img.src=src; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='contain'; img.draggable=false;
+  const card=_makeOverlayCard(img,''); card.style.width='280px'; card.style.height='200px';
+}
+function insertHTMLCard(htmlString){
+  const w=document.createElement('div'); w.className='html-card'; w.style.width='100%'; w.style.height='100%';
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText='width:100%;height:100%;border:none;display:block;';
+  iframe.setAttribute('sandbox','allow-scripts allow-same-origin');
+  iframe.setAttribute('data-src',htmlString);
+  w.appendChild(iframe);
+  const card=_makeOverlayCard(w,'html-card'); card.style.width='500px'; card.style.height='320px';
+  iframe.srcdoc=htmlString;
+}
+function serializeOverlayCards(){
+  const overlay=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');
+  const cards=overlay.querySelectorAll('.img-card'),data=[];
+  cards.forEach(card=>{
+    const img=card.querySelector('img');
+    const textEl=card.querySelector('[contenteditable]');
+    const hd=card.querySelector('.html-card');
+    if(img) data.push({type:'img',src:img.src,left:card.style.left,top:card.style.top,width:card.style.width,height:card.style.height,zIndex:card.style.zIndex||'0'});
+    else if(textEl&&!hd) data.push({type:'text',text:textEl.innerHTML,left:card.style.left,top:card.style.top,width:card.style.width,height:card.style.height,zIndex:card.style.zIndex||'0'});
+    else if(hd){
+      const ifrm=hd.querySelector('iframe');
+      const src=ifrm?ifrm.getAttribute('data-src')||ifrm.srcdoc||'':hd.innerHTML;
+      data.push({type:'html',html:src,left:card.style.left,top:card.style.top,width:card.style.width,height:card.style.height,zIndex:card.style.zIndex||'0'});
+    }
+  });
+  return JSON.stringify(data);
+}
+function restoreOverlayCards(json){
+  if(!json) return; let data; try{data=JSON.parse(json);}catch(e){return;}
+  data.forEach(d=>{
+    if(d.type==='img') insertImgCard(d.src);
+    else if(d.type==='html') insertHTMLCard(d.html);
+    else if(d.type==='text') insertTextCard(d.text);
+    const overlay=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');
+    const cards=overlay.querySelectorAll('.img-card');
+    const card=cards[cards.length-1];
+    card.style.left=d.left||'0px';
+    card.style.top=d.top||'0px';
+    card.style.width=d.width||'280px';
+    card.style.height=d.height||'200px';
+    card.style.zIndex=d.zIndex||'0';
+  });
+}
+function clearOverlay(){const o=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');o.innerHTML='';}
+window.insertImgCard=insertImgCard; window.insertHTMLCard=insertHTMLCard;
+
+/* ── STATUS ── */
+function setFbStatus(state,msg){const el=document.getElementById('fbStatus');el.className=state;el.textContent=msg;}
+
+/* ── AUTH STATE ──
+   FIX 2: loadAllData only reads /sites (public).
+   FIX 3: setFbStatus called right after loadAllData, never blocked by user/admin reads. */
+onAuthStateChanged(auth, async(user)=>{
+  if(user){
+    loggedIn=true; currentUser=user.uid; currentEmail=user.email;
+    currentUsername=user.displayName||user.email; updateUserChip();
+  } else {
+    loggedIn=false; currentUser=null; currentEmail=null; currentUsername=null; updateUserChip();
+  }
+  await loadAllData();
+  setFbStatus('connected','🟢 Connected');
+});
+
+function updateUserChip(){
+  const chip=document.getElementById('userChip'),label=document.getElementById('userChipLabel');
+  if(loggedIn&&currentUsername){chip.style.display='inline-flex';label.textContent='@'+currentUsername;}
+  else chip.style.display='none';
+}
+async function handleSignOut(){
+  jConfirm("Sign out?",async(yes)=>{
+    if(!yes) return; await signOut(auth);
+    loggedIn=false; currentUser=null; currentEmail=null; currentUsername=null; updateUserChip(); jAlert('Signed out ✓');
+  });
+}
+window.handleSignOut=handleSignOut;
+
+/* ── FIRESTORE ──
+   FIX 4: loadAllData ONLY reads /sites (allow read: if true in rules).
+   /users is read only inside debug panel after auth check. */
+async function loadAllData(){
+  try{
+    const snap=await getDocs(sitesCol); netData={};
+    snap.forEach(d=>{netData[d.id]=d.data();});
+  }catch(err){
+    console.error("Firestore load error:",err);
+    setFbStatus('disconnected','🔴 Offline');
+  }
+}
+async function saveSiteToFirestore(id,data){await setDoc(doc(db,"sites",id),data);netData[id]=data;}
+async function deleteSiteFromFirestore(id){await deleteDoc(doc(db,"sites",id));delete netData[id];}
+async function saveUserProfile(uid,username,email){
+  await setDoc(doc(db,"publicUsers",uid),{username,email}); // public: username + email for login
+  await setDoc(doc(db,"users",uid),{username,email}); // private: full data
+}
+function ownerUsername(uid){
+  for(const k of Object.keys(netData)){if(netData[k].owner===uid&&netData[k].ownerUsername)return netData[k].ownerUsername;}
+  return uid?uid.slice(0,8)+'…':'unknown';
+}
+
+/* ── MODALS ── */
+function jAlert(msg,cb){_jModal({msg,type:'alert',cb});}
+function jConfirm(msg,cb){_jModal({msg,type:'confirm',cb});}
+function jPrompt(msg,placeholder,cb,opts={}){_jModal({msg,type:'prompt',placeholder,cb,...opts});}
+window.jAlert=jAlert; window.jConfirm=jConfirm; window.jPrompt=jPrompt;
+function _jModal({msg,type,placeholder='',cb,isCode=false}){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999999;display:flex;align-items:center;justify-content:center;';
+  const iStyle=isCode?'width:100%;padding:10px;background:#111;color:#22c55e;border:1px solid #3c4043;border-radius:6px;outline:none;font-family:JetBrains Mono,monospace;font-size:13px;resize:vertical;min-height:80px;':'width:100%;padding:10px;background:#303134;color:white;border:1px solid #5f6368;border-radius:6px;outline:none;font-family:Outfit,sans-serif;font-size:14px;';
+  const inputEl=type==='prompt'?(isCode?'<textarea id="_jIn" style="'+iStyle+'" placeholder="'+placeholder+'" rows="5"></textarea>':'<input id="_jIn" style="'+iStyle+'" placeholder="'+placeholder+'">') :'';
+  ov.innerHTML='<div style="background:#202124;border:1px solid #5f6368;border-radius:14px;padding:28px;width:420px;max-width:92vw;font-family:Outfit,sans-serif;color:white;"><div style="font-size:13px;color:#bdc1c6;margin-bottom:16px;line-height:1.6;">'+msg+'</div>'+inputEl+'<div style="display:flex;gap:8px;margin-top:18px;justify-content:flex-end;">'+(type==='alert'?'<button id="_jOk" style="padding:8px 22px;background:#a855f7;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;">OK</button>':'')+(type==='confirm'?'<button id="_jNo" style="padding:8px 22px;background:#3c4043;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button><button id="_jYes" style="padding:8px 22px;background:#ef4444;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Confirm</button>':'')+(type==='prompt'?'<button id="_jNo" style="padding:8px 22px;background:#3c4043;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Cancel</button><button id="_jOk" style="padding:8px 22px;background:#a855f7;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Done</button>':'')+'</div></div>';
+  document.body.appendChild(ov);
+  const inp=ov.querySelector('#_jIn');
+  if(inp){setTimeout(()=>inp.focus(),50);inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!isCode){e.preventDefault();ov.querySelector('#_jOk')?.click();}});}
+  if(ov.querySelector('#_jOk')) ov.querySelector('#_jOk').onclick=()=>{ov.remove();if(cb)cb(type==='prompt'?(inp?inp.value.trim():''):true);};
+  if(ov.querySelector('#_jYes')) ov.querySelector('#_jYes').onclick=()=>{ov.remove();if(cb)cb(true);};
+  if(ov.querySelector('#_jNo')) ov.querySelector('#_jNo').onclick=()=>{ov.remove();if(cb)cb(type==='prompt'?null:false);};
+}
+
+/* ── FLOATING WINDOW ── */
+function makeFloatingWindow(contentEl,title){
+  const win=document.createElement('div'); win.className='float-win';
+  const w=900,h=560;
+  win.style.cssText='width:'+w+'px;height:'+h+'px;left:'+((window.innerWidth-w)/2)+'px;top:'+((window.innerHeight-h)/2)+'px;';
+  const bar=document.createElement('div'); bar.className='float-win-bar';
+  const ts=document.createElement('span'); ts.className='float-win-title'; ts.textContent=title;
+  const bts=document.createElement('div'); bts.className='float-win-btns';
+  const fb=document.createElement('button'); fb.className='fw-full'; fb.textContent='⛶';
+  let isFS=false,sg=null;
+  fb.onclick=()=>{if(!isFS){sg={l:win.style.left,t:win.style.top,w:win.style.width,h:win.style.height};win.style.cssText+=';left:0;top:0;width:100vw;height:100vh;border-radius:0;';isFS=true;}else{win.style.left=sg.l;win.style.top=sg.t;win.style.width=sg.w;win.style.height=sg.h;win.style.borderRadius='10px';isFS=false;}};
+  const cb2=document.createElement('button'); cb2.className='fw-close'; cb2.textContent='✕'; cb2.onclick=()=>win.remove();
+  bts.append(fb,cb2); bar.append(ts,bts);
+  const body=document.createElement('div'); body.className='float-win-body'; body.appendChild(contentEl);
+  const rh=document.createElement('div'); rh.className='float-win-resize';
+  win.append(bar,body,rh); document.body.appendChild(win);
+  bar.addEventListener('mousedown',function(e){if(e.target!==bar&&e.target!==ts||isFS)return;e.preventDefault();const sx=e.clientX-win.offsetLeft,sy=e.clientY-win.offsetTop;const mv=ev=>{win.style.left=Math.max(0,ev.clientX-sx)+'px';win.style.top=Math.max(0,ev.clientY-sy)+'px';};const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);});
+  rh.addEventListener('mousedown',function(e){e.preventDefault();const sx=e.clientX,sy=e.clientY,sw=win.offsetWidth,sh=win.offsetHeight;const mv=ev=>{win.style.width=Math.max(260,sw+ev.clientX-sx)+'px';win.style.height=Math.max(180,sh+ev.clientY-sy)+'px';};const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);});
+  return win;
+}
+window.makeFloatingWindow=makeFloatingWindow;
+
+/* ── UTILITY ── */
+function withLoading(fn){
+  const loader=document.getElementById('loader'); loader.style.display='flex';
+  try{
+    const result=fn();
+    if(result&&typeof result.then==='function'){
+      result.finally(()=>{loader.style.display='none';});
+    } else {
+      loader.style.display='none';
+    }
+  }catch(e){
+    loader.style.display='none';
+    throw e;
+  }
+}
+window.withLoading=withLoading;
+function goHome(){withLoading(()=>{toggleView('__none__');document.getElementById('searchUI').style.display='flex';});}
+window.goHome=goHome;
+
+/* ── SITE CRUD ── */
+function createNewSite(){
+  jPrompt('Name your site — <span style="color:#22c55e;">.jat</span> Get it? like .com','my-awesome-site',async(name)=>{
+    if(!name) return; const id=name.trim();
+    if(netData[id]){jAlert('A site with that name already exists');return;}
+    const siteDoc={h:'',cards:'',date:new Date().toLocaleDateString(),published:false,owner:currentUser,ownerUsername:currentUsername||'',bgColor:'#ffffff',createdAt:new Date().toISOString()};
+    withLoading(async()=>{
+      await saveSiteToFirestore(id,siteDoc); currentSite=id; isDirty=false; editorBgColor='#ffffff';
+      document.getElementById('richEditor').style.background='#ffffff'; clearOverlay(); toggleView('creator');
+      document.getElementById('siteName').value=id; document.getElementById('richEditor').innerHTML='';
+      document.getElementById('saveBtn').style.display='none';
+      document.getElementById('publishBtn').style.display='inline-flex';
+      document.getElementById('publishBtn').textContent='🌐 PUBLISH WEBSITE';
+    });
+  });
+}
+window.createNewSite=createNewSite;
+
+async function updateSite(){
+  if(!loggedIn||!currentUser){jAlert('You need to be logged in to save.');return;}
+  const name=document.getElementById('siteName').value.trim();
+  if(!name){jAlert('Your site needs a name first.');return;}
+  const existing=netData[name]||{};
+  const siteDoc={h:'',cards:serializeOverlayCards(),date:new Date().toLocaleDateString(),bgColor:editorBgColor,owner:existing.owner||currentUser,ownerUsername:existing.ownerUsername||currentUsername||'',published:existing.published||false,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+  withLoading(async()=>{await saveSiteToFirestore(name,siteDoc);currentSite=name;isDirty=false;jAlert('Saved ✓');});
+}
+window.updateSite=updateSite;
+
+async function publishSite(){
+  if(!loggedIn||!currentUser){jAlert('You need to be logged in to publish.');return;}
+  const name=document.getElementById('siteName').value.trim();
+  if(!name){jAlert('Your site needs a name first.');return;}
+  const existing=netData[name]||{};
+  const siteDoc={h:'',cards:serializeOverlayCards(),date:new Date().toLocaleDateString(),bgColor:editorBgColor,owner:existing.owner||currentUser,ownerUsername:existing.ownerUsername||currentUsername||'',published:true,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),publishedAt:new Date().toISOString()};
+  withLoading(async()=>{await saveSiteToFirestore(name,siteDoc);isDirty=false;jAlert('🌐 <b>'+name+'.jat</b> is now live!');});
+}
+window.publishSite=publishSite;
+
+function deleteSite(id){
+  jConfirm('Delete <b>'+id+'.jat</b>? This is permanent and cannot be undone.',async(yes)=>{
+    if(!yes) return;
+    withLoading(async()=>{await deleteSiteFromFirestore(id);renderDebugPanel();});
+  });
+}
+window.deleteSite=deleteSite;
+
+/* ── BAN USER ── */
+async function banUser(uid){
+  const uname=ownerUsername(uid);
+  jConfirm('Ban <b>@'+uname+'</b>? Their sites will be permanently deleted.',async(yes)=>{
+    if(!yes) return;
+    withLoading(async()=>{
+      const owned=Object.keys(netData).filter(k=>netData[k].owner===uid);
+      for(const s of owned) await deleteSiteFromFirestore(s);
+      await deleteDoc(doc(db,"users",uid)); renderDebugPanel(); jAlert('@'+uname+' has been removed.');
+    });
+  });
+}
+window.banUser=banUser;
+
+/* ── ADMIN MANAGEMENT ── */
+async function makeAdmin(uid){
+  const uname=ownerUsername(uid);
+  jConfirm('Make <b>@'+uname+'</b> an admin?',async(yes)=>{
+    if(!yes) return;
+    await setDoc(doc(db,"admins",uid),{isAdmin:true,grantedAt:new Date().toISOString(),grantedBy:currentUser});
+    jAlert('@'+uname+' is now an admin ✓'); renderDebugPanel();
+  });
+}
+window.makeAdmin=makeAdmin;
+async function removeAdmin(uid){
+  const uname=ownerUsername(uid);
+  jConfirm('Remove admin status from <b>@'+uname+'</b>?',async(yes)=>{
+    if(!yes) return;
+    await deleteDoc(doc(db,"admins",uid)); jAlert('Admin removed from @'+uname+' ✓'); renderDebugPanel();
+  });
+}
+window.removeAdmin=removeAdmin;
+
+/* ── BAN REQUESTS ── */
+function adminRequestBanUser(uid){
+  const uname=ownerUsername(uid);
+  jPrompt('Why should <b>@'+uname+'</b> be banned? Reason required:','Enter reason…',async(reason)=>{
+    if(!reason){jAlert('You must provide a reason.');return;}
+    await setDoc(doc(db,"pendingBans",'user_'+uid+'_'+Date.now()),{type:'user',targetId:uid,targetName:uname,adminId:currentUser,adminName:currentUsername||currentEmail,reason,submittedAt:new Date().toISOString()});
+    jAlert('Ban request submitted for @'+uname+'.');
+  });
+}
+window.adminRequestBanUser=adminRequestBanUser;
+function adminRequestBanSite(siteId){
+  jPrompt('Why should <b>'+siteId+'.jat</b> be removed? Reason required:','Enter reason…',async(reason)=>{
+    if(!reason){jAlert('You must provide a reason.');return;}
+    await setDoc(doc(db,"pendingBans",'site_'+siteId+'_'+Date.now()),{type:'site',targetId:siteId,adminId:currentUser,adminName:currentUsername||currentEmail,reason,submittedAt:new Date().toISOString()});
+    jAlert('Ban request submitted for '+siteId+'.jat.');
+  });
+}
+window.adminRequestBanSite=adminRequestBanSite;
+async function approveBan(banDocId){
+  jConfirm('Approve this ban? The action will be permanent.',async(yes)=>{
+    if(!yes) return;
+    withLoading(async()=>{
+      const banSnap=await getDoc(doc(db,"pendingBans",banDocId));
+      if(!banSnap.exists()){jAlert('Ban request not found.');return;}
+      const ban=banSnap.data();
+      if(ban.type==='user'){
+        const owned=Object.keys(netData).filter(k=>netData[k].owner===ban.targetId);
+        for(const s of owned) await deleteSiteFromFirestore(s);
+        await deleteDoc(doc(db,"users",ban.targetId));
+        await deleteDoc(doc(db,"admins",ban.targetId)).catch(()=>{});
+      } else if(ban.type==='site') await deleteSiteFromFirestore(ban.targetId);
+      await deleteDoc(doc(db,"pendingBans",banDocId));
+      jAlert('Ban approved and executed ✓'); renderDebugPanel();
+    });
+  });
+}
+window.approveBan=approveBan;
+async function rejectBan(banDocId){
+  jConfirm('Reject this ban request?',async(yes)=>{
+    if(!yes) return;
+    await deleteDoc(doc(db,"pendingBans",banDocId)); jAlert('Ban request rejected.'); renderDebugPanel();
+  });
+}
+window.rejectBan=rejectBan;
+
+/* ── EDITOR HELPERS ── */
+function saveSelBeforeBlur(){const sel=window.getSelection();if(sel&&sel.rangeCount>0)savedRange=sel.getRangeAt(0).cloneRange();}
+function restoreSel(){if(!savedRange)return false;document.getElementById('richEditor').focus();const sel=window.getSelection();sel.removeAllRanges();sel.addRange(savedRange);return true;}
+function restoreSelAndCmd(cmd,val){restoreSel();document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false,val!==undefined?val:null);}
+window.saveSelBeforeBlur=saveSelBeforeBlur; window.restoreSelAndCmd=restoreSelAndCmd;
+function applyFontSize(pt){
+  const px=Math.max(6,parseInt(pt,10)||16);
+  if(!restoreSel()){document.getElementById('richEditor').focus();return;}
+  const sel=window.getSelection(); if(!sel||sel.rangeCount===0||sel.isCollapsed)return;
+  const range=sel.getRangeAt(0),span=document.createElement('span'); span.style.fontSize=px+'px';
+  try{range.surroundContents(span);}catch(e){const f=range.extractContents();span.appendChild(f);range.insertNode(span);}
+  sel.removeAllRanges();const nr=document.createRange();nr.selectNodeContents(span);sel.addRange(nr);savedRange=nr.cloneRange();
+}
+function applyFont(f){restoreSel();document.execCommand('styleWithCSS',false,true);document.execCommand('fontName',false,f);}
+function applyColor(h){restoreSel();document.execCommand('styleWithCSS',false,true);document.execCommand('foreColor',false,h);}
+function applyHighlight(h){restoreSel();document.execCommand('styleWithCSS',false,true);document.execCommand('hiliteColor',false,h);}
+function applyEditorBg(hex){
+  editorBgColor=hex;
+  const el=document.getElementById('fw-richEditor')||document.getElementById('richEditor');
+  el.style.background=hex;
+  const canvas=el.parentElement;
+  if(canvas)canvas.style.background=hex;
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  document.getElementById('richEditor').style.color=((0.299*r+0.587*g+0.114*b)/255)>.5?'#111':'#eee';
+}
+window.applyFontSize=applyFontSize; window.applyFont=applyFont; window.applyColor=applyColor; window.applyHighlight=applyHighlight; window.applyEditorBg=applyEditorBg;
+function insertHTMLElement(){jPrompt('Write any HTML — it becomes a draggable element on your page:','&lt;button style="padding:8px 16px;"&gt;Click me&lt;/button&gt;',(code)=>{if(!code)return;insertHTMLCard(code);isDirty=true;},{isCode:true});}
+function insertTextCard(existingText){
+  const w=document.createElement('div');
+  w.style.cssText='width:100%;height:100%;padding:8px;box-sizing:border-box;position:relative;';
+  const ta=document.createElement('div');
+  ta.contentEditable='true';
+  ta.style.cssText='width:100%;height:100%;outline:none;font-size:16px;font-family:sans-serif;color:#111;word-break:break-word;cursor:text;';
+  if(existingText){ta.innerHTML=existingText;}else{ta.textContent='Text here...';}
+  // only stop propagation on actual clicks not drags
+  let moved=false;
+  ta.addEventListener('mousedown',e=>{moved=false;});
+  ta.addEventListener('mousemove',e=>{moved=true;});
+  ta.addEventListener('mouseup',e=>{if(!moved)e.stopPropagation();});
+  w.appendChild(ta);
+  const card=_makeOverlayCard(w,'html-card');
+  card.style.width='200px';
+  card.style.height='60px';
+  card.style.background='transparent';
+  card.style.border='1px dashed #a855f7';
+  isDirty=true;
+}
+window.insertTextCard=insertTextCard;
+function insertLink(){jPrompt('Enter the URL to link to:','https://',(url)=>{if(!url)return;restoreSel();document.execCommand('styleWithCSS',false,true);document.execCommand('createLink',false,url);});}
+window.insertHTMLElement=insertHTMLElement; window.insertLink=insertLink;
+
+let selectedCard=null;
+document.addEventListener('mousedown',function(e){
+  const card=e.target.closest('.img-card');
+  if(card){
+    if(selectedCard)selectedCard.style.outline='none';
+    selectedCard=card;
+    card.style.outline='2px solid #a855f7';
+  }
+});
+function layerUp(){
+  if(!selectedCard)return;
+  const z=parseInt(selectedCard.style.zIndex||0);
+  selectedCard.style.zIndex=z+1;
+  isDirty=true;
+}
+function layerDown(){
+  if(!selectedCard)return;
+  const z=parseInt(selectedCard.style.zIndex||0);
+  selectedCard.style.zIndex=Math.max(0,z-1);
+  isDirty=true;
+}
+window.layerUp=layerUp; window.layerDown=layerDown;
+
+/* ── EMAIL VALIDATION ── */
+function isLikelyRealEmail(email){
+  const re=/^[a-zA-Z0-9._%+\-]{2,}@[a-zA-Z0-9.\-]{2,}\.[a-zA-Z]{2,}$/;
+  if(!re.test(email))return false;
+  const[local,domain]=email.split('@');
+  if(local.replace(/[^a-z0-9]/gi,'').length<2)return false;
+  const parts=domain.split('.'),tld=parts[parts.length-1];
+  if(tld.length<2||tld.length>6)return false;
+  if(parts.slice(0,-1).join('.').replace(/[^a-z0-9]/gi,'').length<2)return false;
+  return true;
+}
+
+/* ── AUTH UI — Login by USERNAME, Signup with email validation ── */
+function requireLogin(callback){
+  if(loggedIn&&currentUser){if(callback)callback();return;}
+  const overlay=document.createElement("div");
+  overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:99999;";
+  overlay.innerHTML=`<div style="position:relative;background:#202124;padding:30px;border-radius:12px;width:340px;color:white;font-family:'Outfit',sans-serif;">
+    <button id="closeAuthBtn" style="position:absolute;top:10px;right:10px;background:#3c4043;color:white;border:none;border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:14px;">✕</button>
+    <div style="display:flex;margin-bottom:20px;border-bottom:1px solid #3c4043;">
+      <button id="tabLoginBtn" style="flex:1;padding:8px;background:none;border:none;color:#8ab4f8;font-weight:700;cursor:pointer;border-bottom:2px solid #8ab4f8;font-family:'Outfit',sans-serif;font-size:14px;">LOGIN</button>
+      <button id="tabSignupBtn" style="flex:1;padding:8px;background:none;border:none;color:#bdc1c6;cursor:pointer;border-bottom:2px solid transparent;font-family:'Outfit',sans-serif;font-size:14px;">SIGN UP</button>
+    </div>
+    <div id="panelLogin">
+      <div style="font-size:11px;color:#bdc1c6;margin-bottom:4px;letter-spacing:.5px;">USERNAME</div>
+      <input id="loginUser" placeholder="Your username" style="width:100%;margin:0 0 8px;padding:8px;background:#303134;border:1px solid #5f6368;color:white;border-radius:6px;outline:none;">
+      <div style="font-size:11px;color:#bdc1c6;margin-bottom:4px;margin-top:4px;letter-spacing:.5px;">PASSWORD</div>
+      <input id="loginPass" placeholder="Password" type="password" style="width:100%;margin:0 0 4px;padding:8px;background:#303134;border:1px solid #5f6368;color:white;border-radius:6px;outline:none;">
+      <p id="loginError" style="color:#f28b82;font-size:12px;margin:6px 0 0;display:none;"></p>
+      <button id="loginBtn" style="width:100%;margin-top:12px;padding:10px;background:#8ab4f8;color:#202124;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;">LOGIN</button>
+    </div>
+    <div id="panelSignup" style="display:none;">
+      <div style="font-size:11px;color:#bdc1c6;margin-bottom:4px;letter-spacing:.5px;">USERNAME</div>
+      <input id="signupUser" placeholder="Username (min 3 chars)" style="width:100%;margin:0 0 8px;padding:8px;background:#303134;border:1px solid #5f6368;color:white;border-radius:6px;outline:none;">
+      <div style="font-size:11px;color:#bdc1c6;margin-bottom:4px;margin-top:4px;letter-spacing:.5px;">EMAIL</div>
+      <input id="signupEmail" placeholder="Real email address" style="width:100%;margin:0 0 8px;padding:8px;background:#303134;border:1px solid #5f6368;color:white;border-radius:6px;outline:none;">
+      <div style="font-size:11px;color:#bdc1c6;margin-bottom:4px;margin-top:4px;letter-spacing:.5px;">PASSWORD</div>
+      <input id="signupPass" placeholder="Password (min 6 chars)" type="password" style="width:100%;margin:0 0 8px;padding:8px;background:#303134;border:1px solid #5f6368;color:white;border-radius:6px;outline:none;">
+      <input id="signupConfirm" placeholder="Confirm Password" type="password" style="width:100%;margin:0 0 4px;padding:8px;background:#303134;border:1px solid #5f6368;color:white;border-radius:6px;outline:none;">
+      <p id="signupError" style="color:#f28b82;font-size:12px;margin:6px 0 0;display:none;"></p>
+      <button id="signupBtn" style="width:100%;margin-top:12px;padding:10px;background:#a855f7;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px;">CREATE ACCOUNT</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  const showLE=(m)=>{const e=document.getElementById('loginError');e.textContent=m;e.style.display='block';};
+  const showSE=(m)=>{const e=document.getElementById('signupError');e.textContent=m;e.style.display='block';};
+  function activateTab(tab){
+    const L=tab==='login';
+    document.getElementById('panelLogin').style.display=L?'block':'none';
+    document.getElementById('panelSignup').style.display=L?'none':'block';
+    document.getElementById('tabLoginBtn').style.color=L?'#8ab4f8':'#bdc1c6';
+    document.getElementById('tabLoginBtn').style.borderBottom=L?'2px solid #8ab4f8':'2px solid transparent';
+    document.getElementById('tabSignupBtn').style.color=L?'#bdc1c6':'#a855f7';
+    document.getElementById('tabSignupBtn').style.borderBottom=L?'2px solid transparent':'2px solid #a855f7';
+  }
+  document.getElementById('closeAuthBtn').onclick=()=>overlay.remove();
+  document.getElementById('tabLoginBtn').onclick=()=>activateTab('login');
+  document.getElementById('tabSignupBtn').onclick=()=>activateTab('signup');
+
+  document.getElementById('loginBtn').onclick=async()=>{
+    const username=document.getElementById('loginUser').value.trim();
+    const password=document.getElementById('loginPass').value;
+    if(!username||!password){showLE("All fields required.");return;} showLE("");
+    try{
+      // look up uid from publicUsers (public read) then fetch email from private users
+      const pubSnap=await getDocs(publicUsersCol); let foundUid=null;
+      pubSnap.forEach(d=>{if((d.data().username||'').toLowerCase()===username.toLowerCase())foundUid=d.id;});
+      if(!foundUid){showLE("No account with that username found.");return;}
+      const userDoc=await getDoc(doc(db,"users",foundUid));
+      const foundEmail=userDoc.exists()?userDoc.data().email:null;
+      if(!foundEmail){showLE("Account data missing. Try signing up again.");return;}
+      const cred=await signInWithEmailAndPassword(auth,foundEmail,password);
+      loggedIn=true; currentUser=cred.user.uid; currentEmail=cred.user.email; currentUsername=cred.user.displayName||username;
+      updateUserChip(); overlay.remove(); if(callback)callback();
+    }catch(err){
+      if(err.code==='auth/wrong-password'||err.code==='auth/invalid-credential')showLE("Wrong password.");
+      else if(err.code==='auth/too-many-requests')showLE("Too many attempts. Try again later.");
+      else showLE(err.message);
+    }
+  };
+
+  document.getElementById('signupBtn').onclick=async()=>{
+    const username=document.getElementById('signupUser').value.trim();
+    const email=document.getElementById('signupEmail').value.trim();
+    const password=document.getElementById('signupPass').value;
+    const confirm=document.getElementById('signupConfirm').value;
+    if(!username||!email||!password||!confirm){showSE("All fields required.");return;}
+    if(username.length<3){showSE("Username must be at least 3 characters.");return;}
+    if(!/^[a-zA-Z0-9_\-\.]+$/.test(username)){showSE("Username: letters, numbers, _ - . only.");return;}
+    if(!isLikelyRealEmail(email)){showSE("Enter a valid email address (e.g. you@gmail.com).");return;}
+    if(password.length<6){showSE("Password must be at least 6 characters.");return;}
+    if(password!==confirm){showSE("Passwords don't match.");return;}
+    try{
+      const pubSnap=await getDocs(publicUsersCol); let taken=false;
+      pubSnap.forEach(d=>{if((d.data().username||'').toLowerCase()===username.toLowerCase())taken=true;});
+      if(taken){showSE("That username is already taken.");return;}
+      const cred=await createUserWithEmailAndPassword(auth,email,password);
+      await updateProfile(cred.user,{displayName:username});
+      await saveUserProfile(cred.user.uid,username,email);
+      loggedIn=true; currentUser=cred.user.uid; currentEmail=email; currentUsername=username;
+      updateUserChip(); overlay.remove(); jAlert("Welcome to Learning and fun!, <b>@"+username+"</b> 🎉"); if(callback)callback();
+    }catch(err){
+      if(err.code==='auth/email-already-in-use')showSE("An account with that email already exists 👬.");
+      else if(err.code==='auth/weak-password')showSE("Password too weak 🏋 (min 6 chars).");
+      else if(err.code==='auth/invalid-email')showSE("That doesn't look like a valid email address come on you're better than this .");
+      else showSE(err.message);
+    }
+  };
+}
+window.requireLogin=requireLogin;
+
+/* ── DEBUG PANEL ── */
+function openDebugPanel(){
+  requireLogin(()=>{
+    const isOwner=currentEmail===OWNER_EMAIL;
+    if(!isOwner){
+      getDoc(doc(db,"admins",currentUser)).then(snap=>{
+        if(snap.exists()&&snap.data().isAdmin){withLoading(()=>{renderDebugPanel();toggleView('debug-panel');});}
+        else jAlert('Access denied.');
+      }).catch(()=>jAlert('Access denied.')); return;
+    }
+    withLoading(()=>{renderDebugPanel();toggleView('debug-panel');});
+  });
+}
+window.openDebugPanel=openDebugPanel;
+
+async function renderDebugPanel(){
+  const isOwner=currentEmail===OWNER_EMAIL;
+  const cont=document.getElementById('debug-list'); cont.innerHTML='<p style="color:#bdc1c6;">Loading…</p>';
+  await loadAllData();
+  let allUsers={};
+  try{const snap=await getDocs(usersCol);snap.forEach(d=>{allUsers[d.id]={uid:d.id,...d.data()};});}catch(e){}
+  let adminIds={};
+  try{const snap=await getDocs(collection(db,"admins"));snap.forEach(d=>{if(d.data().isAdmin)adminIds[d.id]=true;});}catch(e){}
+  cont.innerHTML='';
+
+  if(isOwner){
+    let pending=[];
+    try{const snap=await getDocs(collection(db,"pendingBans"));snap.forEach(d=>pending.push({id:d.id,...d.data()}));}catch(e){}
+    const inbox=document.createElement('div');
+    inbox.style.cssText="margin-bottom:30px;background:#1a0a2e;border:2px solid #a855f7;border-radius:12px;padding:18px;";
+    inbox.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><h3 style="color:#a855f7;margin:0;">📬 Admin Ban Request Inbox '+(pending.length>0?'<span style="background:#a855f7;color:white;border-radius:20px;padding:2px 10px;font-size:13px;">'+pending.length+'</span>':'')+'</h3></div>'+(pending.length===0?'<p style="color:#bdc1c6;font-size:13px;margin:0;">No pending ban requests.</p>':'');
+    pending.forEach(ban=>{
+      const c=document.createElement('div');
+      c.style.cssText="background:#2a1a3e;padding:14px;border-radius:8px;margin-bottom:10px;border:1px solid #5f3a8a;";
+      const tl=ban.type==='user'?'User: <b>@'+(ban.targetName||ban.targetId)+'</b>':'Site: <b>'+ban.targetId+'.jat</b>';
+      c.innerHTML='<div style="font-size:13px;color:#e8eaed;margin-bottom:6px;">'+tl+'</div><div style="font-size:12px;color:#bdc1c6;margin-bottom:4px;">By: <b style="color:#8ab4f8;">@'+(ban.adminName||ban.adminId)+'</b></div><div style="font-size:12px;color:#bdc1c6;margin-bottom:10px;">Reason: <em>"'+ban.reason+'"</em></div><div style="font-size:11px;color:#6b7280;margin-bottom:10px;">'+new Date(ban.submittedAt||0).toLocaleString()+'</div><div style="display:flex;gap:8px;"><button class="btn btn-green" style="font-size:12px;" onclick="approveBan(\''+ban.id+'\')">✅ APPROVE</button><button class="btn btn-dark" style="font-size:12px;" onclick="rejectBan(\''+ban.id+'\')">❌ REJECT</button></div>';
+      inbox.appendChild(c);
+    });
+    cont.appendChild(inbox);
+
+    const as=document.createElement('div');
+    as.style.cssText="margin-bottom:30px;background:#0a1a2e;border:1px solid #8ab4f8;border-radius:12px;padding:18px;";
+    as.innerHTML='<h3 style="color:#8ab4f8;margin:0 0 12px;">👑 Admin Management</h3>';
+    Object.keys(allUsers).forEach(uid=>{
+      if(uid===currentUser)return;
+      const acc=allUsers[uid],isAdm=adminIds[uid];
+      const row=document.createElement('div');
+      row.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1a2a3e;";
+      row.innerHTML='<span style="font-size:13px;">@'+(acc.username||'unknown')+' <span style="color:#8ab4f8;font-size:11px;">'+(acc.email||'')+'</span> '+(isAdm?'<span style="color:#a855f7;font-size:11px;">● ADMIN</span>':'')+'</span>'+(isAdm?'<button class="btn btn-red" style="font-size:11px;padding:4px 10px;" onclick="removeAdmin(\''+uid+'\')">REMOVE ADMIN</button>':'<button class="btn btn-blue" style="font-size:11px;padding:4px 10px;" onclick="makeAdmin(\''+uid+'\')">MAKE ADMIN</button>');
+      as.appendChild(row);
+    });
+    cont.appendChild(as);
+  }
+
+  const siteKeys=Object.keys(netData);
+  const ss=document.createElement('div');
+  ss.innerHTML='<h3 style="color:var(--google-blue);margin:0 0 10px;">🌐 All Sites ('+siteKeys.length+')</h3>';
+  siteKeys.forEach(k=>{
+    const pub=netData[k].published?'<span style="color:#22c55e;font-size:11px;margin-left:6px;">● LIVE</span>':'';
+    const owner=netData[k].ownerUsername||ownerUsername(netData[k].owner);
+    const row=document.createElement('div'); row.className='dir-item';
+    const actionBtn=isOwner?'<button class="btn btn-red" style="font-size:11px;padding:4px 8px;" onclick="deleteSite(\''+k+'\')">🗑 DELETE</button>':'<button class="btn btn-orange" style="font-size:11px;padding:4px 8px;" onclick="adminRequestBanSite(\''+k+'\')">🚫 REQUEST REMOVAL</button>';
+    row.innerHTML='<span>'+k+pub+' <span style="color:#bdc1c6;font-size:11px;">by @'+owner+'</span></span><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-dark" onclick="launchSite(\''+k+'\')">👁 VIEW</button><button class="btn btn-dark" onclick="editSite(\''+k+'\')">✎ EDIT</button>'+actionBtn+'</div>';
+    ss.appendChild(row);
+  });
+  cont.appendChild(ss);
+
+  const us=document.createElement('div'); us.style.marginTop='30px';
+  const uids=Object.keys(allUsers);
+  us.innerHTML='<h3 style="color:var(--google-blue);margin:0 0 10px;">👥 All Users ('+uids.length+')</h3>';
+  uids.forEach(uid=>{
+    const acc=allUsers[uid],ownedSites=Object.keys(netData).filter(k=>netData[k].owner===uid);
+    const card=document.createElement('div');
+    card.style.cssText="background:#1e1e1e;padding:16px;border-radius:10px;margin-bottom:16px;border:1px solid #3c4043;";
+    const banBtn=isOwner?'<button class="btn btn-red" onclick="banUser(\''+uid+'\')">🚫 BAN USER</button>':'<button class="btn btn-orange" onclick="adminRequestBanUser(\''+uid+'\')">🚫 REQUEST BAN</button>';
+    card.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;"><div><div style="font-weight:700;font-size:15px;">@'+(acc.username||'unknown')+' '+(adminIds[uid]?'<span style="color:#a855f7;font-size:11px;">● ADMIN</span>':'')+'</div><div style="color:#8ab4f8;font-size:12px;">'+(acc.email||uid)+'</div><div style="color:#bdc1c6;font-size:12px;margin-top:4px;">Sites: <b>'+ownedSites.length+'</b></div></div>'+banBtn+'</div>';
+    if(ownedSites.length>0){
+      const sw=document.createElement('div'); sw.style.cssText="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;";
+      ownedSites.forEach(sn=>{
+        const site=netData[sn],mini=document.createElement('div');
+        mini.style.cssText="background:#2b2b2b;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:180px;";
+        const miniBtn=isOwner?'<button class="btn btn-red" style="font-size:11px;padding:4px 8px;" onclick="deleteSite(\''+sn+'\')">🗑</button>':'<button class="btn btn-orange" style="font-size:11px;padding:4px 8px;" onclick="adminRequestBanSite(\''+sn+'\')">🚫</button>';
+        mini.innerHTML='<div style="font-size:12px;font-weight:700;">'+sn+'</div><div style="background:'+(site.bgColor||'white')+';width:160px;height:80px;overflow:hidden;border-radius:4px;font-size:7px;pointer-events:none;">'+(site.h||'<em style="color:#888;">empty</em>')+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;"><button class="btn btn-dark" style="font-size:11px;padding:4px 8px;" onclick="launchSite(\''+sn+'\')">VIEW</button><button class="btn btn-dark" style="font-size:11px;padding:4px 8px;" onclick="editSite(\''+sn+'\')">✎</button>'+miniBtn+'</div>';
+        sw.appendChild(mini);
+      });
+      card.appendChild(sw);
+    }
+    us.appendChild(card);
+  });
+  cont.appendChild(us);
+}
+window.renderDebugPanel=renderDebugPanel;
+
+/* ── VIEWS ── */
+function toggleView(id){
+  const views=['results-view','creator','my-sites','debug-panel'];
+  const hideSearch=!['results-view','__none__'].includes(id);
+  document.getElementById('searchUI').style.display=hideSearch?'none':'flex';
+  views.forEach(v=>{const el=document.getElementById(v);if(el)el.style.display='none';});
+  if(id==='__none__')return;
+  if(id==='creator'){
+    const existing=document.getElementById('editor-float-win');
+    if(existing)existing.remove();
+
+    const wrapper=document.createElement('div');
+    wrapper.style.cssText='width:100%;height:100%;display:flex;flex-direction:column;background:white;position:relative;';
+
+    // slim toolbar toggle bar
+    const toggleBtn=document.createElement('button');
+    toggleBtn.textContent='▼ TOOLS';
+    toggleBtn.style.cssText='width:100%;background:#2a2a2e;color:#e8eaed;border:none;padding:4px;cursor:pointer;font-size:11px;letter-spacing:1px;flex-shrink:0;z-index:20;position:relative;';
+
+    // toolbar drawer
+    const drawer=document.createElement('div');
+    drawer.style.cssText='background:#2a2a2e;display:flex;flex-wrap:wrap;gap:4px;padding:0 8px;max-height:0;overflow:hidden;transition:max-height 0.25s ease,padding 0.25s ease;flex-shrink:0;';
+
+    // clone all toolbar buttons into drawer
+    const srcToolbar=document.getElementById('creator').querySelector('.doc-toolbar');
+    Array.from(srcToolbar.children).forEach(child=>{
+      drawer.appendChild(child.cloneNode(true));
+    });
+
+    // publish and update inside drawer
+    const saveB=document.createElement('button');
+    saveB.id='fw-saveBtn';
+    saveB.className='btn btn-purple';
+    saveB.textContent='💾 UPDATE';
+    saveB.style.display='none';
+    saveB.onclick=updateSite;
+    const pubB=document.createElement('button');
+    pubB.id='fw-publishBtn';
+    pubB.className='btn btn-green';
+    pubB.textContent='🌐 PUBLISH';
+    pubB.onclick=publishSite;
+    drawer.appendChild(saveB);
+    drawer.appendChild(pubB);
+
+    let drawerOpen=false;
+    toggleBtn.onclick=()=>{
+      drawerOpen=!drawerOpen;
+      drawer.style.maxHeight=drawerOpen?'200px':'0';
+      drawer.style.padding=drawerOpen?'6px 8px':'0 8px';
+      toggleBtn.textContent=drawerOpen?'▲ TOOLS':'▼ TOOLS';
+    };
+
+    // full white canvas
+    const canvas=document.createElement('div');
+    canvas.style.cssText='flex:1;position:relative;overflow:hidden;background:white;';
+    const bg=document.createElement('div');
+    bg.id='fw-richEditor';
+    bg.style.cssText='position:absolute;inset:0;background:white;pointer-events:none;';
+    const overlay=document.createElement('div');
+    overlay.id='fw-overlay';
+    overlay.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:10;';
+    canvas.appendChild(bg);
+    canvas.appendChild(overlay);
+
+    wrapper.appendChild(toggleBtn);
+    wrapper.appendChild(drawer);
+    wrapper.appendChild(canvas);
+
+    const fw=makeFloatingWindow(wrapper,'✎ Site Editor');
+    fw.id='editor-float-win';
+    fw.style.width='900px';
+    fw.style.height='560px';
+    fw.style.left=((window.innerWidth-900)/2)+'px';
+    fw.style.top=((window.innerHeight-560)/2)+'px';
+    return;
+  }
+  const target=document.getElementById(id); if(!target)return;
+  target.style.display='block';
+}
+window.toggleView=toggleView;
+
+/* ── LAUNCH SITE ── */
+function launchSite(id){
+  const site=netData[id]; if(!site){jAlert('Site not found.');return;}
+  const bg=site.bgColor||'#ffffff';
+  const r=parseInt(bg.slice(1,3)||'ff',16),g=parseInt(bg.slice(3,5)||'ff',16),b=parseInt(bg.slice(5,7)||'ff',16);
+  const fg=(0.299*r+0.587*g+0.114*b)/255>.5?'#111':'#eee';
+  let cardsHTML='';
+  if(site.cards){try{JSON.parse(site.cards).forEach(c=>{if(c.type==='img')cardsHTML+='<img src="'+c.src+'" style="position:absolute;left:'+c.left+';top:'+c.top+';width:'+(c.width||'280px')+';height:'+(c.height||'200px')+';object-fit:contain;border-radius:6px;max-width:none;">';else if(c.type==='html')cardsHTML+='<iframe srcdoc="'+c.html.replace(/"/g,'&quot;')+'" sandbox="allow-scripts allow-same-origin" style="position:absolute;left:'+c.left+';top:'+c.top+';width:'+(c.width||'200px')+';height:'+(c.height||'80px')+';border:none;box-sizing:border-box;"></iframe>';});}catch(e){}}
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>html,body{margin:0;padding:0;width:100%;height:100%;background:'+bg+';color:'+fg+';}a{color:#1a73e8;}*{box-sizing:border-box;}</style></head><body><div style="position:relative;width:100%;min-height:100%;background:'+bg+';">'+(site.h||'')+'<div style="position:relative;width:100%;min-height:500px;">'+cardsHTML+'</div></div></body></html>';
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText="width:100%;height:100%;border:none;display:block;";
+  iframe.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-modals allow-popups');
+  iframe.srcdoc=html;
+  const wrap=document.createElement('div'); wrap.style.cssText="width:100%;height:100%;"; wrap.appendChild(iframe);
+  makeFloatingWindow(wrap,id+'.jat');
+}
+window.launchSite=launchSite;
+
+/* ── MY SITES & EDIT ── */
+function renderMySites(){
+  if(!loggedIn||!currentUser)return;
+  const cont=document.getElementById('my-list'); cont.innerHTML='';
+  const mine=Object.keys(netData).filter(k=>netData[k].owner===currentUser);
+  if(mine.length===0){cont.innerHTML='<p style="color:#bdc1c6;">No sites yet. Make one!</p>';return;}
+  mine.forEach(k=>{
+    const pub=netData[k].published?'<span style="color:#22c55e;font-size:11px;margin-left:6px;">● LIVE</span>':'';
+    cont.innerHTML+='<div class="dir-item"><span>'+k+pub+'</span><div style="display:flex;gap:6px;"><button class="btn btn-dark" onclick="launchSite(\''+k+'\')">👁 VIEW</button><button class="btn btn-dark" onclick="editSite(\''+k+'\')">✎ EDIT</button><button class="btn btn-red" onclick="deleteSite(\''+k+'\')">🗑 DELETE</button></div></div>';
+  });
+}
+window.renderMySites=renderMySites;
+
+function editSite(id){
+  requireLogin(()=>{
+    const site=netData[id]; if(!site){jAlert('Site not found.');return;}
+    currentSite=id; isDirty=false;
+    editorBgColor=site.bgColor||'#ffffff';
+    document.getElementById('siteName').value=id;
+    toggleView('creator');
+    setTimeout(()=>{
+      const bg=document.getElementById('fw-richEditor');
+      if(bg){bg.style.background=editorBgColor;if(bg.parentElement)bg.parentElement.style.background=editorBgColor;}
+      clearOverlay();
+      if(site.cards)restoreOverlayCards(site.cards);
+      const saveB=document.getElementById('fw-saveBtn');
+      const pubB=document.getElementById('fw-publishBtn');
+      if(saveB)saveB.style.display='inline-flex';
+      if(pubB)pubB.style.display='none';
+    },50);
+  });
+}
+window.editSite=editSite;
+
+/* ── SEARCH ── */
+async function executeSearch(){
+  const q=(document.getElementById('mainSearch').value||document.getElementById('topUrlBar').value||"").trim();
+  if(!q)return; await loadAllData();
+  const siteName=q.endsWith(".jat")?q.replace(".jat",""):q;
+  if(netData[siteName]){document.getElementById('searchUI').style.display='flex';launchSite(siteName);return;}
+  document.getElementById('searchUI').style.display='flex'; renderLinks(q);
+}
+window.executeSearch=executeSearch;
+
+function renderLinks(q){
+  toggleView('results-view');
+  const cont=document.getElementById('results-view'); cont.innerHTML='';
+  const keys=Object.keys(netData);
+  const matches=q?keys.filter(k=>k.toLowerCase().includes(q.toLowerCase())||(netData[k].h||'').toLowerCase().includes(q.toLowerCase())):keys;
+  if(matches.length===0){cont.innerHTML="<h2>NO RESULTS FOUND</h2>";return;}
+  matches.forEach(k=>{
+    const pub=netData[k].published?'<span style="color:#22c55e;font-size:11px;margin-left:8px;">● LIVE</span>':'';
+    const owner=netData[k].ownerUsername||ownerUsername(netData[k].owner);
+    cont.innerHTML+='<div class="res-item"><span class="res-title" onclick="launchSite(\''+k+'\')">'+k+'</span>'+pub+'<div style="color:#bdc1c6;font-size:13px;">By <b style="color:#a855f7;">@'+owner+'</b> · '+(netData[k].date||'')+'</div></div>';
+  });
+}
+
+/* ── TOOLBAR SYNC ── */
+document.getElementById('richEditor').addEventListener('keyup',syncToolbar);
+document.getElementById('richEditor').addEventListener('mouseup',syncToolbar);
+document.getElementById('richEditor').addEventListener('input',()=>{isDirty=true;});
+function syncToolbar(){
+  try{
+    const sel=window.getSelection(); if(!sel||!sel.anchorNode)return;
+    const node=sel.anchorNode.nodeType===3?sel.anchorNode.parentElement:sel.anchorNode;
+    const cs=window.getComputedStyle(node),fs=parseFloat(cs.fontSize);
+    if(fs)document.getElementById('fontSizeInput').value=Math.round(fs);
+    const ff=cs.fontFamily.split(',')[0].replace(/['"]/g,'').trim();
+    const sel2=document.getElementById('fontFamilySelect');
+    for(let i=0;i<sel2.options.length;i++){if(sel2.options[i].value.toLowerCase()===ff.toLowerCase()){sel2.selectedIndex=i;break;}}
+  }catch(e){}
+}
+
+setFbStatus('loading','⏳ Connecting…');
+</script>
+</body>
+</html>
