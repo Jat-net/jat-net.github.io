@@ -442,7 +442,7 @@ async function updateSite(){
   const name=document.getElementById('siteName').value.trim();
   if(!name){jAlert('Your site needs a name first.');return;}
   const existing=netData[name]||{};
-  const siteDoc={h:'',cards:serializeOverlayCards(),date:new Date().toLocaleDateString(),bgColor:editorBgColor,owner:existing.owner||currentUser,ownerUsername:existing.ownerUsername||currentUsername||'',published:existing.published||false,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+  const edEl=document.getElementById('fw-richEditor')||document.getElementById('richEditor');const siteDoc={h:edEl?edEl.innerHTML:'',cards:serializeOverlayCards(),date:new Date().toLocaleDateString(),bgColor:editorBgColor,owner:existing.owner||currentUser,ownerUsername:existing.ownerUsername||currentUsername||'',published:existing.published||false,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
   withLoading(async()=>{await saveSiteToFirestore(name,siteDoc);currentSite=name;isDirty=false;jAlert('Saved ✓');});
 }
 window.updateSite=updateSite;
@@ -452,7 +452,7 @@ async function publishSite(){
   const name=document.getElementById('siteName').value.trim();
   if(!name){jAlert('Your site needs a name first.');return;}
   const existing=netData[name]||{};
-  const siteDoc={h:'',cards:serializeOverlayCards(),date:new Date().toLocaleDateString(),bgColor:editorBgColor,owner:existing.owner||currentUser,ownerUsername:existing.ownerUsername||currentUsername||'',published:true,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),publishedAt:new Date().toISOString()};
+  const edEl=document.getElementById('fw-richEditor')||document.getElementById('richEditor');const siteDoc={h:edEl?edEl.innerHTML:'',cards:serializeOverlayCards(),date:new Date().toLocaleDateString(),bgColor:editorBgColor,owner:existing.owner||currentUser,ownerUsername:existing.ownerUsername||currentUsername||'',published:true,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString(),publishedAt:new Date().toISOString()};
   withLoading(async()=>{await saveSiteToFirestore(name,siteDoc);isDirty=false;jAlert('🌐 <b>'+name+'.jat</b> is now live!');});
 }
 window.publishSite=publishSite;
@@ -910,7 +910,7 @@ function launchSite(id){
   const fg=(0.299*r+0.587*g+0.114*b)/255>.5?'#111':'#eee';
   let cardsHTML='';
   if(site.cards){try{JSON.parse(site.cards).forEach(c=>{if(c.type==='img')cardsHTML+='<img src="'+c.src+'" style="position:absolute;left:'+c.left+';top:'+c.top+';width:'+(c.width||'280px')+';height:'+(c.height||'200px')+';object-fit:contain;border-radius:6px;max-width:none;z-index:'+(c.zIndex||0)+';">';else if(c.type==='html')cardsHTML+='<iframe srcdoc="'+c.html.replace(/"/g,'&quot;')+'" sandbox="allow-scripts allow-same-origin" style="position:absolute;left:'+c.left+';top:'+c.top+';width:'+(c.width||'200px')+';height:'+(c.height||'80px')+';border:none;box-sizing:border-box;z-index:'+(c.zIndex||0)+';">';else if(c.type==='text')cardsHTML+='<div style="position:absolute;left:'+c.left+';top:'+c.top+';width:'+(c.width||'200px')+';height:'+(c.height||'60px')+';padding:8px;box-sizing:border-box;font-size:16px;font-family:sans-serif;word-break:break-word;z-index:'+(c.zIndex||0)+';">'+c.text+'</div>';});}catch(e){}}
-  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>html,body{margin:0;padding:0;width:100%;height:100%;background:'+bg+';color:'+fg+';}a{color:#1a73e8;}*{box-sizing:border-box;}</style></head><body><div style="position:relative;width:100%;min-height:100%;background:'+bg+';">'+(site.h||'')+'<div style="position:relative;width:100%;min-height:500px;">'+cardsHTML+'</div></div></body></html>';
+  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>html,body{margin:0;padding:0;width:100%;height:100%;background:'+bg+';color:inherit;}a{color:#1a73e8;}*{box-sizing:border-box;}</style></head><body><div style="position:relative;width:100%;min-height:100%;background:'+bg+';">'+(site.h||'')+'<div style="position:relative;width:100%;min-height:500px;">'+cardsHTML+'</div></div></body></html>';
   const iframe=document.createElement('iframe');
   iframe.style.cssText="width:100%;height:100%;border:none;display:block;";
   iframe.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-modals allow-popups');
