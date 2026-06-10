@@ -304,7 +304,7 @@ function restoreOverlayCards(json){
   });
 }
 function clearOverlay(){const o=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');o.innerHTML='';}
-window.insertImgCard=insertImgCard; window.insertHTMLCard=insertHTMLCard;
+window.insertImgCard=insertImgCard; window.insertHTMLCard=insertHTMLCard; window.serializeOverlayCards=serializeOverlayCards;
 
 /* ── STATUS ── */
 function setFbStatus(state,msg){const el=document.getElementById('fbStatus');el.className=state;el.textContent=msg;}
