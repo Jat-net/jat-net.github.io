@@ -214,7 +214,7 @@ window.handleEditorImageUpload=handleEditorImageUpload;
 
 /* ── OVERLAY CARD FACTORY ── */
 function _makeOverlayCard(innerEl, extraClass){
-  const overlay=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');
+  const overlay=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');console.log('OVERLAY:',overlay?.id,'CARDS:',overlay?.querySelectorAll('.img-card').length,overlay?.innerHTML.slice(0,200));
   const card=document.createElement('div');
   card.className='img-card'+(extraClass?' '+extraClass:'');
   card.style.left='30px'; card.style.top='30px';
