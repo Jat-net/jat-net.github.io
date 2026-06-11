@@ -938,7 +938,7 @@ async function launchSite(id){
   const content=document.createElement('div'); content.style.cssText='position:relative;width:100%;min-height:100%;background:'+bg+';';
   if(site.h){const hDiv=document.createElement('div');hDiv.innerHTML=site.h;content.appendChild(hDiv);}
   const canvas=document.createElement('div'); canvas.style.cssText='position:relative;width:100%;min-height:500px;';
-  if(site.cards){try{JSON.parse(site.cards).forEach(c=>{
+  if(site.cards){console.log('CARDS AT VIEW TIME:',site.cards);try{JSON.parse(site.cards).forEach(c=>{
     if(c.type==='img'){
       const img=document.createElement('img');
       img.src=c.src;
