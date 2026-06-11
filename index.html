@@ -442,7 +442,7 @@ async function updateSite(){
   const name=document.getElementById('siteName').value.trim();
   if(!name){jAlert('Your site needs a name first.');return;}
   const existing=netData[name]||{};
-  const edEl=document.getElementById('fw-richEditor')||document.getElementById('richEditor');const siteDoc={h:edEl?edEl.innerHTML:'',cards:serializeOverlayCards(),date:new Date().toLocaleDateString(),bgColor:editorBgColor,owner:existing.owner||currentUser,ownerUsername:existing.ownerUsername||currentUsername||'',published:existing.published||false,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+  const edEl=document.getElementById('fw-richEditor')||document.getElementById('richEditor');const cards=serializeOverlayCards();console.log('SAVING CARDS:',cards);const siteDoc={h:edEl?edEl.innerHTML:'',cards:cards,date:new Date().toLocaleDateString(),bgColor:editorBgColor,owner:existing.owner||currentUser,ownerUsername:existing.ownerUsername||currentUsername||'',published:existing.published||false,createdAt:existing.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
   withLoading(async()=>{await saveSiteToFirestore(name,siteDoc);currentSite=name;isDirty=false;jAlert('Saved ✓');});
 }
 window.updateSite=updateSite;
