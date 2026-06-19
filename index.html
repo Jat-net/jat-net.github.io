@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JAT-net</title>
+<title>AGS</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Outfit:wght@300;600;900&family=Orbitron:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Slab:wght@400;700&family=Lobster&family=Pacifico&family=Dancing+Script:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@300;600&family=Merriweather:wght@300;700&family=Nunito:wght@300;700&family=Poppins:wght@300;600&family=Ubuntu:wght@300;700&family=Lato:wght@300;700&family=Montserrat:wght@300;700&family=Source+Code+Pro&family=Fira+Code&family=Space+Mono&family=Bebas+Neue&family=Righteous&family=Press+Start+2P&family=Cinzel:wght@400;700&family=Satisfy&family=Caveat:wght@400;700&family=Architects+Daughter&family=Permanent+Marker&family=Kalam:wght@300;700&family=Indie+Flower&family=Special+Elite&family=Creepster&family=Fredoka+One&family=Boogaloo&family=Bangers&family=Chewy&family=Exo+2:wght@300;700&family=Rajdhani:wght@300;700&family=Audiowide&family=Share+Tech+Mono&display=swap">
 <style>
 :root{--bg:#202124;--panel:#303134;--accent:#a855f7;--neon:#22c55e;--text:#e8eaed;--border:#3c4043;--google-blue:#8ab4f8;}
@@ -67,7 +67,7 @@ body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t
 <body>
 <div id="loader"><div class="spinner"></div></div>
 <div class="url-header">
-  <div style="font-weight:900;color:var(--accent);min-width:110px;font-size:15px;"> JAT-net 🌐</div>
+  <div style="font-weight:900;color:var(--accent);min-width:110px;font-size:15px;"> After school games 📚</div>
   <input id="topUrlBar" placeholder="enter_url_directly.jat" onkeydown="if(event.key==='Enter')executeSearch()">
   <button class="btn btn-blue" onclick="executeSearch()">ENTER</button>
 </div>
@@ -217,7 +217,13 @@ function _makeOverlayCard(innerEl, extraClass){
   const overlay=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');
   const card=document.createElement('div');
   card.className='img-card'+(extraClass?' '+extraClass:'');
-  card.style.left='30px'; card.style.top='30px';
+  // FIX: every new box used to spawn at the exact same left:30/top:30 spot,
+  // so adding a 2nd/3rd box without moving the previous one first would land
+  // it directly on top, hiding that box's ✕/resize controls underneath.
+  // Cascade each new box's start position so they don't stack exactly.
+  const existingCount=overlay.querySelectorAll('.img-card').length;
+  const offset=(existingCount%8)*24;
+  card.style.left=(30+offset)+'px'; card.style.top=(30+offset)+'px';
   const handle=document.createElement('div'); handle.className='ic-handle';
   const delBtn=document.createElement('button'); delBtn.className='ic-del'; delBtn.textContent='✕'; delBtn.title='Remove';
   delBtn.onclick=(e)=>{e.stopPropagation();card.remove();isDirty=true;};
@@ -277,12 +283,13 @@ function serializeOverlayCards(){
     const img=card.querySelector('img');
     const textEl=card.querySelector('[contenteditable]');
     const hd=card.querySelector('.html-card');
-    if(img) data.push({type:'img',src:img.src,left:card.style.left,top:card.style.top,width:card.style.width,height:card.style.height,zIndex:card.style.zIndex||'0'});
-    else if(textEl&&!hd) data.push({type:'text',text:textEl.innerHTML,left:card.style.left,top:card.style.top,width:card.style.width,height:card.style.height,zIndex:card.style.zIndex||'0'});
+    const z=card.dataset.realz!==undefined?card.dataset.realz:(card.style.zIndex||'0');
+    if(img) data.push({type:'img',src:img.src,left:card.style.left,top:card.style.top,width:card.style.width,height:card.style.height,zIndex:z});
+    else if(textEl&&!hd) data.push({type:'text',text:textEl.innerHTML,left:card.style.left,top:card.style.top,width:card.style.width,height:card.style.height,zIndex:z});
     else if(hd){
       const ifrm=hd.querySelector('iframe');
       const src=ifrm?ifrm.getAttribute('data-src')||ifrm.srcdoc||'':hd.innerHTML;
-      data.push({type:'html',html:src,left:card.style.left,top:card.style.top,width:card.style.width,height:card.style.height,zIndex:card.style.zIndex||'0'});
+      data.push({type:'html',html:src,left:card.style.left,top:card.style.top,width:card.style.width,height:card.style.height,zIndex:z});
     }
   });
   return JSON.stringify(data);
@@ -301,6 +308,7 @@ function restoreOverlayCards(json){
     card.style.width=d.width||'280px';
     card.style.height=d.height||'200px';
     card.style.zIndex=d.zIndex||'0';
+    card.dataset.realz=d.zIndex||'0';
   });
 }
 function clearOverlay(){const o=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');o.innerHTML='';}
@@ -545,7 +553,18 @@ window.rejectBan=rejectBan;
 
 /* ── EDITOR HELPERS ── */
 function saveSelBeforeBlur(){const sel=window.getSelection();if(sel&&sel.rangeCount>0)savedRange=sel.getRangeAt(0).cloneRange();}
-function restoreSel(){if(!savedRange)return false;document.getElementById('richEditor').focus();const sel=window.getSelection();sel.removeAllRanges();sel.addRange(savedRange);return true;}
+function restoreSel(){
+  if(!savedRange)return false;
+  // FIX: focus whatever editable element the saved range actually lives in,
+  // instead of always focusing the hidden #richEditor (which broke font/format
+  // changes once you'd opened and closed the font dropdown in the floating editor).
+  let container=savedRange.startContainer;
+  if(container.nodeType===3) container=container.parentElement;
+  const editableHost=container&&container.closest?container.closest('[contenteditable="true"]'):null;
+  if(editableHost) editableHost.focus();
+  else { const fallback=document.getElementById('fw-richEditor')||document.getElementById('richEditor'); if(fallback) fallback.focus(); }
+  const sel=window.getSelection();sel.removeAllRanges();sel.addRange(savedRange);return true;
+}
 function restoreSelAndCmd(cmd,val){restoreSel();document.execCommand('styleWithCSS',false,true);document.execCommand(cmd,false,val!==undefined?val:null);}
 window.saveSelBeforeBlur=saveSelBeforeBlur; window.restoreSelAndCmd=restoreSelAndCmd;
 function applyFontSize(pt){
@@ -624,22 +643,34 @@ async function handlePaste(e){
 let selectedCard=null;
 document.addEventListener('mousedown',function(e){
   const card=e.target.closest('.img-card');
+  // FIX: when a card is overlapped by another card with a higher z-index,
+  // its ✕ delete and ⤡ resize handles get visually buried underneath the
+  // other card and look like they "disappeared". Selecting a card now bumps
+  // it to the very front visually (style.zIndex) while remembering its real
+  // layer position in data-realz so LAYER ⬆/⬇ and saving still work correctly.
+  if(selectedCard && selectedCard!==card){
+    selectedCard.style.outline='none';
+    selectedCard.style.zIndex=selectedCard.dataset.realz||'0';
+  }
   if(card){
-    if(selectedCard)selectedCard.style.outline='none';
+    if(card.dataset.realz===undefined) card.dataset.realz=card.style.zIndex||'0';
     selectedCard=card;
     card.style.outline='2px solid #a855f7';
+    card.style.zIndex='9999';
+  } else {
+    selectedCard=null;
   }
 });
 function layerUp(){
   if(!selectedCard)return;
-  const z=parseInt(selectedCard.style.zIndex||0);
-  selectedCard.style.zIndex=z+1;
+  const z=parseInt(selectedCard.dataset.realz||selectedCard.style.zIndex||0);
+  selectedCard.dataset.realz=z+1;
   isDirty=true;
 }
 function layerDown(){
   if(!selectedCard)return;
-  const z=parseInt(selectedCard.style.zIndex||0);
-  selectedCard.style.zIndex=Math.max(0,z-1);
+  const z=parseInt(selectedCard.dataset.realz||selectedCard.style.zIndex||0);
+  selectedCard.dataset.realz=Math.max(0,z-1);
   isDirty=true;
 }
 window.layerUp=layerUp; window.layerDown=layerDown;
