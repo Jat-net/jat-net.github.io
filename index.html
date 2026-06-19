@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AGS</title>
+<title>JAT-net</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Outfit:wght@300;600;900&family=Orbitron:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Slab:wght@400;700&family=Lobster&family=Pacifico&family=Dancing+Script:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@300;600&family=Merriweather:wght@300;700&family=Nunito:wght@300;700&family=Poppins:wght@300;600&family=Ubuntu:wght@300;700&family=Lato:wght@300;700&family=Montserrat:wght@300;700&family=Source+Code+Pro&family=Fira+Code&family=Space+Mono&family=Bebas+Neue&family=Righteous&family=Press+Start+2P&family=Cinzel:wght@400;700&family=Satisfy&family=Caveat:wght@400;700&family=Architects+Daughter&family=Permanent+Marker&family=Kalam:wght@300;700&family=Indie+Flower&family=Special+Elite&family=Creepster&family=Fredoka+One&family=Boogaloo&family=Bangers&family=Chewy&family=Exo+2:wght@300;700&family=Rajdhani:wght@300;700&family=Audiowide&family=Share+Tech+Mono&display=swap">
 <style>
 :root{--bg:#202124;--panel:#303134;--accent:#a855f7;--neon:#22c55e;--text:#e8eaed;--border:#3c4043;--google-blue:#8ab4f8;}
@@ -67,7 +67,7 @@ body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t
 <body>
 <div id="loader"><div class="spinner"></div></div>
 <div class="url-header">
-  <div style="font-weight:900;color:var(--accent);min-width:110px;font-size:15px;"> After school games 📚</div>
+  <div style="font-weight:900;color:var(--accent);min-width:110px;font-size:15px;">JAT-net 🌐</div>
   <input id="topUrlBar" placeholder="enter_url_directly.jat" onkeydown="if(event.key==='Enter')executeSearch()">
   <button class="btn btn-blue" onclick="executeSearch()">ENTER</button>
 </div>
@@ -75,7 +75,7 @@ body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t
   <button class="btn btn-purple" onclick="requireLogin(createNewSite)">MAKE NEW SITE</button>
   <button class="btn btn-dark" onclick="withLoading(()=>{requireLogin(()=>{renderMySites();toggleView('my-sites');});})">MY SITES ✎</button>
   <button class="btn btn-dark" onclick="goHome()">HOME</button>
-  <button class="btn btn-dark" onclick="openDebugPanel()">DEBUGGING PANEL</button>
+  <button class="btn btn-dark" id="adminPanelBtn" onclick="openDebugPanel()" style="display:none;">ADMIN PANEL</button>
   <span id="userChip" onclick="handleSignOut()" title="Click to sign out">👤 <span id="userChipLabel"></span> · Sign out</span>
   <span id="fbStatus" class="loading">⏳ Connecting…</span>
 </div>
@@ -138,7 +138,7 @@ body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t
     </div>
   </div>
   <div id="my-sites" style="display:none;" class="editor-container"><h2>My Created Sites</h2><div id="my-list"></div></div>
-  <div id="debug-panel" style="display:none;" class="editor-container"><h2>🛠 DEBUG CONTROL PANEL</h2><div id="debug-list"></div></div>
+  <div id="debug-panel" style="display:none;" class="editor-container"><h2>🛠 ADMIN PANEL</h2><div id="debug-list"></div></div>
 </main>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -328,8 +328,24 @@ onAuthStateChanged(auth, async(user)=>{
     loggedIn=false; currentUser=null; currentEmail=null; currentUsername=null; updateUserChip();
   }
   await loadAllData();
+  await updateAdminButtonVisibility();
   setFbStatus('connected','🟢 Connected');
 });
+
+/* FIX: only show the Admin Panel button to the owner email or a Firestore-confirmed admin. */
+async function updateAdminButtonVisibility(){
+  const btn=document.getElementById('adminPanelBtn');
+  if(!btn) return;
+  if(!loggedIn||!currentUser){btn.style.display='none';return;}
+  if(currentEmail===OWNER_EMAIL){btn.style.display='inline-flex';return;}
+  try{
+    const snap=await getDoc(doc(db,"admins",currentUser));
+    btn.style.display=(snap.exists()&&snap.data().isAdmin)?'inline-flex':'none';
+  }catch(e){
+    btn.style.display='none';
+  }
+}
+window.updateAdminButtonVisibility=updateAdminButtonVisibility;
 
 function updateUserChip(){
   const chip=document.getElementById('userChip'),label=document.getElementById('userChipLabel');
