@@ -37,7 +37,7 @@ body{margin:0;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t
 .img-card img{display:block;border-radius:6px;width:100%;height:100%;object-fit:contain;pointer-events:none;}
 .img-card .ic-handle{position:absolute;bottom:2px;right:2px;width:14px;height:14px;background:var(--accent);border:2px solid white;border-radius:50%;cursor:se-resize;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.5);}
 .img-card .ic-del{position:absolute;top:2px;right:2px;width:18px;height:18px;background:#ef4444;color:white;border:none;border-radius:50%;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;line-height:1;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.5);}
-.html-card{border:2px dashed var(--accent);border-radius:6px;background:rgba(255,255,255,0.95);padding:4px;width:100%;height:100%;box-sizing:border-box;overflow:hidden;}
+.html-card{border:2px dashed var(--accent);border-radius:6px;background:rgba(255,255,255,0.95);padding:0;width:100%;height:100%;box-sizing:border-box;overflow:hidden;}
 .btn{padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;border:none;font-size:12px;white-space:nowrap;}
 .btn-blue{background:var(--google-blue);color:#202124;}
 .btn-purple{background:var(--accent);color:white;}
@@ -258,15 +258,33 @@ function insertImgCard(src){
   img.src=src; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='contain'; img.draggable=false;
   const card=_makeOverlayCard(img,''); card.style.width='280px'; card.style.height='200px';
 }
+function _wrapHtmlForCard(htmlString){
+  // Inject CSS that forces every element inside the card to fill and
+  // auto-format itself to the box size.
+  return '<style>'
+    +'*{box-sizing:border-box;max-width:100%;}'
+    +'html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}'
+    +'img,video,canvas,svg{width:100%;height:auto;display:block;}'
+    +'button,input,select,textarea{width:100%;font-size:inherit;}'
+    +'</style>'
+    +htmlString;
+}
 function insertHTMLCard(htmlString){
-  const w=document.createElement('div'); w.className='html-card'; w.style.width='100%'; w.style.height='100%';
+  const w=document.createElement('div'); w.className='html-card'; w.style.cssText='width:100%;height:100%;padding:0;';
   const iframe=document.createElement('iframe');
   iframe.style.cssText='width:100%;height:100%;border:none;display:block;';
   iframe.setAttribute('sandbox','allow-scripts allow-same-origin');
   iframe.setAttribute('data-src',htmlString);
+  iframe.srcdoc=_wrapHtmlForCard(htmlString);
   w.appendChild(iframe);
   const card=_makeOverlayCard(w,'html-card'); card.style.width='500px'; card.style.height='320px';
-  iframe.srcdoc=htmlString;
+  // keep iframe filling card on every resize
+  if(window.ResizeObserver){
+    new ResizeObserver(()=>{
+      iframe.style.width=card.offsetWidth+'px';
+      iframe.style.height=card.offsetHeight+'px';
+    }).observe(card);
+  }
 }
 function serializeOverlayCards(){
   const overlay=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');
@@ -431,11 +449,9 @@ function createNewSite(){
     const siteDoc={h:'',cards:'',date:new Date().toLocaleDateString(),published:false,owner:currentUser,ownerUsername:currentUsername||'',bgColor:'#ffffff',createdAt:new Date().toISOString()};
     withLoading(async()=>{
       await saveSiteToFirestore(id,siteDoc); currentSite=id; isDirty=false; editorBgColor='#ffffff';
-      document.getElementById('richEditor').style.background='#ffffff'; clearOverlay(); toggleView('creator');
-      document.getElementById('siteName').value=id; document.getElementById('richEditor').innerHTML='';
-      document.getElementById('saveBtn').style.display='none';
-      document.getElementById('publishBtn').style.display='inline-flex';
-      document.getElementById('publishBtn').textContent='🌐 PUBLISH WEBSITE';
+      document.getElementById('siteName').value=id;
+      const {richEd,canvasWrap}=_openEditor(id,true);
+      richEd.innerHTML=''; canvasWrap.style.background='#ffffff'; richEd.style.background='#ffffff';
     });
   });
 }
@@ -858,119 +874,141 @@ async function renderDebugPanel(){
 }
 window.renderDebugPanel=renderDebugPanel;
 
-/* ── VIEWS ──
-   FIX: site creation/editing now opens as a full real page (the original
-   #creator panel) instead of a small floating window, so it feels like a
-   real website builder rather than a popup app. */
+/* ── VIEWS / LAUNCH / EDIT ── */
 function toggleView(id){
   const views=['results-view','creator','my-sites','debug-panel'];
   const hideSearch=!['results-view','__none__'].includes(id);
   document.getElementById('searchUI').style.display=hideSearch?'none':'flex';
   views.forEach(v=>{const el=document.getElementById(v);if(el)el.style.display='none';});
-  if(id==='__none__')return;
+  if(id==='__none__'||id==='creator')return;
   const target=document.getElementById(id); if(!target)return;
   target.style.display='block';
 }
 window.toggleView=toggleView;
 
-/* ── LAUNCH SITE ──
-   FIX: viewing a published/saved site now takes over the full screen with a
-   brief "connecting…" loading animation first, then reveals the page with
-   just a thin close bar — making it feel like visiting a real live website
-   rather than opening a little app window. */
-async function launchSite(id){
-  await loadAllData();
-  const site=netData[id]; if(!site){jAlert('Site not found.');return;}
+/* shared canvas builder — viewer and editor use the same layout */
+function _buildViewCanvas(site){
   const bg=site.bgColor||'#ffffff';
-
-  const prevUrl=window.location.href;
-  history.pushState({jatSite:id}, '', '#/'+id+'.jat');
-
-  const stage=document.createElement('div');
-  stage.id='site-view-stage';
-  stage.style.cssText='position:fixed;inset:0;background:#0a0a0a;z-index:99998;display:flex;align-items:center;justify-content:center;font-family:Outfit,sans-serif;';
-  stage.innerHTML=`
-    <div style="text-align:center;color:#e8eaed;">
-      <div style="width:46px;height:46px;border:4px solid #333;border-top-color:#a855f7;border-radius:50%;margin:0 auto 18px;animation:spin .7s linear infinite;"></div>
-      <div style="font-size:13px;letter-spacing:1px;color:#bdc1c6;">CONNECTING TO <b style="color:#a855f7;">${id}.jat</b>…</div>
-    </div>`;
-  document.body.appendChild(stage);
-
-  const loadTime=500+Math.random()*900;
-  await new Promise(r=>setTimeout(r,loadTime));
-
-  const closeBar=document.createElement('div');
-  closeBar.style.cssText='position:fixed;top:0;left:0;right:0;height:38px;background:#171717;display:flex;align-items:center;gap:10px;padding:0 14px;z-index:99999;border-bottom:1px solid #333;';
-  closeBar.innerHTML=`<button id="exitSiteBtn" style="background:#3c4043;color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">✕ Close</button>
-    <span style="color:#8ab4f8;font-family:'JetBrains Mono',monospace;font-size:12px;">${id}.jat</span>`;
-
-  const content=document.createElement('div');
-  content.style.cssText='position:absolute;top:38px;left:0;right:0;bottom:0;background:'+bg+';overflow:auto;';
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:absolute;top:38px;left:0;right:0;bottom:0;background:'+bg+';overflow:auto;';
   const inner=document.createElement('div');
   inner.style.cssText='position:relative;width:100%;min-height:100%;background:'+bg+';';
   if(site.h){const hDiv=document.createElement('div');hDiv.innerHTML=site.h;inner.appendChild(hDiv);}
-  const canvas=document.createElement('div'); canvas.style.cssText='position:relative;width:100%;min-height:500px;';
+  const canvas=document.createElement('div');canvas.style.cssText='position:relative;width:100%;min-height:500px;';
   if(site.cards){try{JSON.parse(site.cards).forEach(c=>{
-    if(c.type==='img'){
-      const img=document.createElement('img');
-      img.src=c.src;
-      img.style.cssText='position:absolute;left:'+c.left+';top:'+c.top+';width:'+(c.width||'280px')+';height:'+(c.height||'200px')+';object-fit:contain;border-radius:6px;max-width:none;z-index:'+(c.zIndex||0)+';';
-      canvas.appendChild(img);
-    } else if(c.type==='html'||c.type==='text'){
-      const fr=document.createElement('iframe');
-      fr.sandbox='allow-scripts allow-same-origin';
-      fr.style.cssText='position:absolute;left:'+c.left+';top:'+c.top+';width:'+(c.width||'200px')+';height:'+(c.height||'60px')+';border:none;background:transparent;z-index:'+(c.zIndex||0)+';';
-      fr.srcdoc=c.type==='text'?'<style>html,body{margin:0;padding:0;background:transparent;font-size:16px;font-family:sans-serif;word-break:break-word;}body{padding:8px;}</style>'+c.text:c.html;
-      canvas.appendChild(fr);
-    }
+    if(c.type==='img'){const img=document.createElement('img');img.src=c.src;img.style.cssText='position:absolute;left:'+c.left+';top:'+c.top+';width:'+(c.width||'280px')+';height:'+(c.height||'200px')+';object-fit:contain;border-radius:6px;max-width:none;z-index:'+(c.zIndex||0)+';';canvas.appendChild(img);}
+    else if(c.type==='html'||c.type==='text'){const fr=document.createElement('iframe');fr.sandbox='allow-scripts allow-same-origin';fr.style.cssText='position:absolute;left:'+c.left+';top:'+c.top+';width:'+(c.width||'200px')+';height:'+(c.height||'60px')+';border:none;background:transparent;z-index:'+(c.zIndex||0)+';';fr.srcdoc=c.type==='text'?'<style>html,body{margin:0;padding:0;background:transparent;font-size:16px;font-family:sans-serif;word-break:break-word;}body{padding:8px;}</style>'+c.text:c.html;canvas.appendChild(fr);}
   });}catch(e){}}
-  inner.appendChild(canvas); content.appendChild(inner);
+  inner.appendChild(canvas);wrap.appendChild(inner);
+  return {wrap,bg};
+}
 
-  stage.innerHTML='';
-  stage.style.background=bg;
-  stage.appendChild(closeBar);
-  stage.appendChild(content);
-
-  document.getElementById('exitSiteBtn').onclick=()=>{
-    stage.remove();
-    history.pushState({}, '', prevUrl);
-  };
+/* viewer — full screen with loading animation */
+async function launchSite(id){
+  await loadAllData();
+  const site=netData[id]; if(!site){jAlert('Site not found.');return;}
+  const prevUrl=window.location.href;
+  history.pushState({jatSite:id},'','#/'+id+'.jat');
+  const stage=document.createElement('div');
+  stage.id='site-view-stage';
+  stage.style.cssText='position:fixed;inset:0;background:#0a0a0a;z-index:99998;display:flex;align-items:center;justify-content:center;font-family:Outfit,sans-serif;';
+  stage.innerHTML=`<div style="text-align:center;color:#e8eaed;"><div style="width:46px;height:46px;border:4px solid #333;border-top-color:#a855f7;border-radius:50%;margin:0 auto 18px;animation:spin .7s linear infinite;"></div><div style="font-size:13px;letter-spacing:1px;color:#bdc1c6;">CONNECTING TO <b style="color:#a855f7;">${id}.jat</b>&hellip;</div></div>`;
+  document.body.appendChild(stage);
+  await new Promise(r=>setTimeout(r,500+Math.random()*900));
+  const {wrap,bg}=_buildViewCanvas(site);
+  const topBar=document.createElement('div');
+  topBar.style.cssText='position:absolute;top:0;left:0;right:0;height:38px;background:#171717;display:flex;align-items:center;gap:10px;padding:0 14px;z-index:10;border-bottom:1px solid #333;';
+  topBar.innerHTML=`<button id="exitSiteBtn" style="background:#3c4043;color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">&times; Close</button><span style="color:#8ab4f8;font-family:'JetBrains Mono',monospace;font-size:12px;">${id}.jat</span>`;
+  stage.innerHTML='';stage.style.cssText='position:fixed;inset:0;z-index:99998;background:'+bg+';';
+  stage.appendChild(topBar);stage.appendChild(wrap);
+  document.getElementById('exitSiteBtn').onclick=()=>{stage.remove();history.pushState({},'',prevUrl);};
 }
 window.launchSite=launchSite;
 
-function renderMySites(){
-  if(!loggedIn||!currentUser)return;
-  const cont=document.getElementById('my-list'); cont.innerHTML='';
-  const mine=Object.keys(netData).filter(k=>netData[k].owner===currentUser);
-  if(mine.length===0){cont.innerHTML='<p style="color:#bdc1c6;">No sites yet. Make one!</p>';return;}
-  mine.forEach(k=>{
-    const pub=netData[k].published?'<span style="color:#22c55e;font-size:11px;margin-left:6px;">● LIVE</span>':'';
-    cont.innerHTML+='<div class="dir-item"><span>'+k+pub+'</span><div style="display:flex;gap:6px;"><button class="btn btn-dark" onclick="launchSite(\''+k+'\')">👁 VIEW</button><button class="btn btn-dark" onclick="editSite(\''+k+'\')">✎ EDIT</button><button class="btn btn-red" onclick="deleteSite(\''+k+'\')">🗑 DELETE</button></div></div>';
-  });
+/* editor — identical full-screen layout as viewer but canvas is editable */
+function _openEditor(siteId,isNew){
+  const prev=document.getElementById('site-editor-stage');if(prev)prev.remove();
+  const bg=editorBgColor||'#ffffff';
+  const stage=document.createElement('div');
+  stage.id='site-editor-stage';
+  stage.style.cssText='position:fixed;inset:0;z-index:99997;display:flex;flex-direction:column;font-family:Outfit,sans-serif;background:'+bg+';';
+  const topBar=document.createElement('div');
+  topBar.style.cssText='background:#171717;border-bottom:1px solid #333;flex-shrink:0;';
+  const titleRow=document.createElement('div');
+  titleRow.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 14px;height:38px;';
+  const saveBtnHtml=isNew?'':'<button id="edSaveBtn" style="background:#a855f7;color:white;border:none;border-radius:6px;padding:3px 12px;cursor:pointer;font-size:12px;font-weight:700;">&#128190; UPDATE</button>';
+  titleRow.innerHTML='<button id="edCloseBtn" style="background:#3c4043;color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">&times; Close</button>'
+    +'<span style="color:#a855f7;font-family:\'JetBrains Mono\',monospace;font-size:12px;">'+siteId+'.jat</span>'
+    +'<span style="color:#5f6368;font-size:11px;">&mdash; editing</span>'
+    +'<button id="edToolsToggle" style="background:#3c4043;color:#e8eaed;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:11px;letter-spacing:.5px;">&#9660; TOOLS</button>'
+    +saveBtnHtml
+    +'<button id="edPublishBtn" style="background:#22c55e;color:#000;border:none;border-radius:6px;padding:3px 12px;cursor:pointer;font-size:12px;font-weight:700;">&#127760; PUBLISH</button>'
+    +'<span id="edUploadBadge" style="display:none;" class="img-upload-badge"><span class="dot"></span><span id="edUploadText">Uploading&hellip;</span></span>';
+  topBar.appendChild(titleRow);
+  const drawer=document.createElement('div');
+  drawer.id='ed-drawer';
+  drawer.style.cssText='background:#2a2a2e;display:flex;flex-wrap:wrap;gap:4px;padding:0 8px;max-height:0;overflow:hidden;transition:max-height 0.25s ease,padding 0.25s ease;';
+  const srcToolbar=document.querySelector('#creator .doc-toolbar');
+  Array.from(srcToolbar.children).forEach(child=>drawer.appendChild(child.cloneNode(true)));
+  topBar.appendChild(drawer);stage.appendChild(topBar);
+  // canvasWrap uses the SAME structure as the viewer (_buildViewCanvas) so
+  // the edit view is pixel-identical to the published view.
+  const canvasWrap=document.createElement('div');
+  canvasWrap.style.cssText='flex:1;overflow:auto;background:'+bg+';position:relative;';
+  const inner=document.createElement('div');
+  inner.style.cssText='position:relative;width:100%;min-height:100%;background:'+bg+';';
+  // editable rich-text layer (replaces the static hDiv in the viewer)
+  const richEd=document.createElement('div');
+  richEd.id='fw-richEditor';richEd.contentEditable='true';
+  richEd.style.cssText='width:100%;min-height:500px;background:'+bg+';outline:none;padding:8px;box-sizing:border-box;';
+  // overlay for draggable image/html/text cards
+  const overlay=document.createElement('div');
+  overlay.id='fw-overlay';
+  overlay.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;';
+  inner.appendChild(richEd);inner.appendChild(overlay);
+  canvasWrap.appendChild(inner);
+  stage.appendChild(canvasWrap);document.body.appendChild(stage);
+  let drawerOpen=false;
+  document.getElementById('edToolsToggle').onclick=()=>{
+    drawerOpen=!drawerOpen;
+    drawer.style.maxHeight=drawerOpen?'200px':'0';
+    drawer.style.padding=drawerOpen?'6px 8px':'0 8px';
+    document.getElementById('edToolsToggle').innerHTML=drawerOpen?'&#9650; TOOLS':'&#9660; TOOLS';
+  };
+  document.getElementById('edCloseBtn').onclick=()=>stage.remove();
+  if(!isNew){const sb=document.getElementById('edSaveBtn');if(sb)sb.onclick=updateSite;}
+  document.getElementById('edPublishBtn').onclick=publishSite;
+  return {richEd,overlay,canvasWrap};
 }
-window.renderMySites=renderMySites;
 
 function editSite(id){
   requireLogin(()=>{
-    const site=netData[id]; if(!site){jAlert('Site not found.');return;}
-    currentSite=id; isDirty=false;
-    editorBgColor=site.bgColor||'#ffffff';
+    const site=netData[id];if(!site){jAlert('Site not found.');return;}
+    currentSite=id;isDirty=false;editorBgColor=site.bgColor||'#ffffff';
     document.getElementById('siteName').value=id;
-    toggleView('creator');
-    setTimeout(()=>{
-      const bg=document.getElementById('richEditor');
-      if(bg){bg.style.background=editorBgColor;}
-      clearOverlay();
-      if(site.cards)restoreOverlayCards(site.cards);
-      const saveB=document.getElementById('saveBtn');
-      const pubB=document.getElementById('publishBtn');
-      if(saveB)saveB.style.display='inline-flex';
-      if(pubB)pubB.style.display='none';
-    },50);
+    const {richEd,overlay,canvasWrap}=_openEditor(id,false);
+    richEd.innerHTML=site.h||'';
+    // apply bg to every layer so editor looks identical to viewer
+    canvasWrap.style.background=editorBgColor;
+    richEd.style.background=editorBgColor;
+    const innerDiv=canvasWrap.querySelector('div');
+    if(innerDiv)innerDiv.style.background=editorBgColor;
+    if(site.cards)setTimeout(()=>restoreOverlayCards(site.cards),50);
   });
 }
 window.editSite=editSite;
 
+function renderMySites(){
+  if(!loggedIn||!currentUser)return;
+  const cont=document.getElementById('my-list');cont.innerHTML='';
+  const mine=Object.keys(netData).filter(k=>netData[k].owner===currentUser);
+  if(mine.length===0){cont.innerHTML='<p style="color:#bdc1c6;">No sites yet. Make one!</p>';return;}
+  mine.forEach(k=>{
+    const pub=netData[k].published?'<span style="color:#22c55e;font-size:11px;margin-left:6px;">&#9679; LIVE</span>':'';
+    cont.innerHTML+='<div class="dir-item"><span>'+k+pub+'</span><div style="display:flex;gap:6px;"><button class="btn btn-dark" onclick="launchSite(\''+k+'\')">&#128065; VIEW</button><button class="btn btn-dark" onclick="editSite(\''+k+'\')">&#9998; EDIT</button><button class="btn btn-red" onclick="deleteSite(\''+k+'\')">&#128465; DELETE</button></div></div>';
+  });
+}
+window.renderMySites=renderMySites;
 async function executeSearch(){
   const q=(document.getElementById('mainSearch').value||document.getElementById('topUrlBar').value||"").trim();
   if(!q)return; await loadAllData();
