@@ -158,7 +158,6 @@ const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
 const auth = getAuth(app);
 
-/* FIX 1: setPersistence is standalone — NOT inside onAuthStateChanged */
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 const sitesCol       = collection(db, "sites");
@@ -180,11 +179,9 @@ async function getImgBBKey(){
   return IMGBB_KEY;
 }
 
-/* ── UPLOAD STATUS ── */
 function showUploadStatus(t){const el=document.getElementById('uploadStatus'),tx=document.getElementById('uploadStatusText');if(el&&tx){tx.textContent=t;el.style.display='inline-flex';}}
 function hideUploadStatus(){const el=document.getElementById('uploadStatus');if(el)el.style.display='none';}
 
-/* ── IMGBB UPLOAD ── */
 async function uploadToImgBB(file){
   const key=await getImgBBKey();
   const fd=new FormData(); fd.append('image',file);
@@ -212,15 +209,10 @@ async function handleEditorImageUpload(input){
 }
 window.handleEditorImageUpload=handleEditorImageUpload;
 
-/* ── OVERLAY CARD FACTORY ── */
 function _makeOverlayCard(innerEl, extraClass){
   const overlay=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');
   const card=document.createElement('div');
   card.className='img-card'+(extraClass?' '+extraClass:'');
-  // FIX: every new box used to spawn at the exact same left:30/top:30 spot,
-  // so adding a 2nd/3rd box without moving the previous one first would land
-  // it directly on top, hiding that box's ✕/resize controls underneath.
-  // Cascade each new box's start position so they don't stack exactly.
   const existingCount=overlay.querySelectorAll('.img-card').length;
   const offset=(existingCount%8)*24;
   card.style.left=(30+offset)+'px'; card.style.top=(30+offset)+'px';
@@ -314,12 +306,8 @@ function restoreOverlayCards(json){
 function clearOverlay(){const o=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');o.innerHTML='';}
 window.insertImgCard=insertImgCard; window.insertHTMLCard=insertHTMLCard;
 
-/* ── STATUS ── */
 function setFbStatus(state,msg){const el=document.getElementById('fbStatus');el.className=state;el.textContent=msg;}
 
-/* ── AUTH STATE ──
-   FIX 2: loadAllData only reads /sites (public).
-   FIX 3: setFbStatus called right after loadAllData, never blocked by user/admin reads. */
 onAuthStateChanged(auth, async(user)=>{
   if(user){
     loggedIn=true; currentUser=user.uid; currentEmail=user.email;
@@ -332,7 +320,6 @@ onAuthStateChanged(auth, async(user)=>{
   setFbStatus('connected','🟢 Connected');
 });
 
-/* FIX: only show the Admin Panel button to the owner email or a Firestore-confirmed admin. */
 async function updateAdminButtonVisibility(){
   const btn=document.getElementById('adminPanelBtn');
   if(!btn) return;
@@ -360,9 +347,6 @@ async function handleSignOut(){
 }
 window.handleSignOut=handleSignOut;
 
-/* ── FIRESTORE ──
-   FIX 4: loadAllData ONLY reads /sites (allow read: if true in rules).
-   /users is read only inside debug panel after auth check. */
 async function loadAllData(){
   try{
     const snap=await getDocs(sitesCol); netData={};
@@ -375,15 +359,14 @@ async function loadAllData(){
 async function saveSiteToFirestore(id,data){await setDoc(doc(db,"sites",id),data);netData[id]=data;}
 async function deleteSiteFromFirestore(id){await deleteDoc(doc(db,"sites",id));delete netData[id];}
 async function saveUserProfile(uid,username,email){
-  await setDoc(doc(db,"publicUsers",uid),{username,email}); // public: username + email for login
-  await setDoc(doc(db,"users",uid),{username,email}); // private: full data
+  await setDoc(doc(db,"publicUsers",uid),{username,email});
+  await setDoc(doc(db,"users",uid),{username,email});
 }
 function ownerUsername(uid){
   for(const k of Object.keys(netData)){if(netData[k].owner===uid&&netData[k].ownerUsername)return netData[k].ownerUsername;}
   return uid?uid.slice(0,8)+'…':'unknown';
 }
 
-/* ── MODALS ── */
 function jAlert(msg,cb){_jModal({msg,type:'alert',cb});}
 function jConfirm(msg,cb){_jModal({msg,type:'confirm',cb});}
 function jPrompt(msg,placeholder,cb,opts={}){_jModal({msg,type:'prompt',placeholder,cb,...opts});}
@@ -402,7 +385,6 @@ function _jModal({msg,type,placeholder='',cb,isCode=false}){
   if(ov.querySelector('#_jNo')) ov.querySelector('#_jNo').onclick=()=>{ov.remove();if(cb)cb(type==='prompt'?null:false);};
 }
 
-/* ── FLOATING WINDOW ── */
 function makeFloatingWindow(contentEl,title){
   const win=document.createElement('div'); win.className='float-win';
   const w=900,h=560;
@@ -424,7 +406,6 @@ function makeFloatingWindow(contentEl,title){
 }
 window.makeFloatingWindow=makeFloatingWindow;
 
-/* ── UTILITY ── */
 function withLoading(fn){
   const loader=document.getElementById('loader'); loader.style.display='flex';
   try{
@@ -443,7 +424,6 @@ window.withLoading=withLoading;
 function goHome(){withLoading(()=>{toggleView('__none__');document.getElementById('searchUI').style.display='flex';});}
 window.goHome=goHome;
 
-/* ── SITE CRUD ── */
 function createNewSite(){
   jPrompt('Name your site — <span style="color:#22c55e;">.jat</span> Get it? like .com','my-awesome-site',async(name)=>{
     if(!name) return; const id=name.trim();
@@ -489,7 +469,6 @@ function deleteSite(id){
 }
 window.deleteSite=deleteSite;
 
-/* ── BAN USER ── */
 async function banUser(uid){
   const uname=ownerUsername(uid);
   jConfirm('Ban <b>@'+uname+'</b>? Their sites will be permanently deleted.',async(yes)=>{
@@ -503,7 +482,6 @@ async function banUser(uid){
 }
 window.banUser=banUser;
 
-/* ── ADMIN MANAGEMENT ── */
 async function makeAdmin(uid){
   const uname=ownerUsername(uid);
   jConfirm('Make <b>@'+uname+'</b> an admin?',async(yes)=>{
@@ -522,7 +500,6 @@ async function removeAdmin(uid){
 }
 window.removeAdmin=removeAdmin;
 
-/* ── BAN REQUESTS ── */
 function adminRequestBanUser(uid){
   const uname=ownerUsername(uid);
   jPrompt('Why should <b>@'+uname+'</b> be banned? Reason required:','Enter reason…',async(reason)=>{
@@ -567,13 +544,9 @@ async function rejectBan(banDocId){
 }
 window.rejectBan=rejectBan;
 
-/* ── EDITOR HELPERS ── */
 function saveSelBeforeBlur(){const sel=window.getSelection();if(sel&&sel.rangeCount>0)savedRange=sel.getRangeAt(0).cloneRange();}
 function restoreSel(){
   if(!savedRange)return false;
-  // FIX: focus whatever editable element the saved range actually lives in,
-  // instead of always focusing the hidden #richEditor (which broke font/format
-  // changes once you'd opened and closed the font dropdown in the floating editor).
   let container=savedRange.startContainer;
   if(container.nodeType===3) container=container.parentElement;
   const editableHost=container&&container.closest?container.closest('[contenteditable="true"]'):null;
@@ -612,7 +585,6 @@ function insertTextCard(existingText){
   ta.contentEditable='true';
   ta.style.cssText='width:100%;height:100%;outline:none;font-size:16px;font-family:sans-serif;color:#111;word-break:break-word;cursor:text;';
   if(existingText){ta.innerHTML=existingText;}else{ta.textContent='Text here...';}
-  // only stop propagation on actual clicks not drags
   let moved=false;
   ta.addEventListener('mousedown',e=>{moved=false;});
   ta.addEventListener('mousemove',e=>{moved=true;});
@@ -659,11 +631,6 @@ async function handlePaste(e){
 let selectedCard=null;
 document.addEventListener('mousedown',function(e){
   const card=e.target.closest('.img-card');
-  // FIX: when a card is overlapped by another card with a higher z-index,
-  // its ✕ delete and ⤡ resize handles get visually buried underneath the
-  // other card and look like they "disappeared". Selecting a card now bumps
-  // it to the very front visually (style.zIndex) while remembering its real
-  // layer position in data-realz so LAYER ⬆/⬇ and saving still work correctly.
   if(selectedCard && selectedCard!==card){
     selectedCard.style.outline='none';
     selectedCard.style.zIndex=selectedCard.dataset.realz||'0';
@@ -691,7 +658,6 @@ function layerDown(){
 }
 window.layerUp=layerUp; window.layerDown=layerDown;
 
-/* ── EMAIL VALIDATION ── */
 function isLikelyRealEmail(email){
   const re=/^[a-zA-Z0-9._%+\-]{2,}@[a-zA-Z0-9.\-]{2,}\.[a-zA-Z]{2,}$/;
   if(!re.test(email))return false;
@@ -703,7 +669,6 @@ function isLikelyRealEmail(email){
   return true;
 }
 
-/* ── AUTH UI — Login by USERNAME, Signup with email validation ── */
 function requireLogin(callback){
   if(loggedIn&&currentUser){if(callback)callback();return;}
   const overlay=document.createElement("div");
@@ -755,7 +720,6 @@ function requireLogin(callback){
     const password=document.getElementById('loginPass').value;
     if(!username||!password){showLE("All fields required.");return;} showLE("");
     try{
-      // look up uid from publicUsers (public read) then fetch email from private users
       const pubSnap=await getDocs(publicUsersCol); let foundUid=null;
       pubSnap.forEach(d=>{if((d.data().username||'').toLowerCase()===username.toLowerCase())foundUid=d.id;});
       if(!foundUid){showLE("No account with that username found.");return;}
@@ -802,7 +766,6 @@ function requireLogin(callback){
 }
 window.requireLogin=requireLogin;
 
-/* ── DEBUG PANEL ── */
 function openDebugPanel(){
   requireLogin(()=>{
     const isOwner=currentEmail===OWNER_EMAIL;
@@ -895,97 +858,59 @@ async function renderDebugPanel(){
 }
 window.renderDebugPanel=renderDebugPanel;
 
-/* ── VIEWS ── */
+/* ── VIEWS ──
+   FIX: site creation/editing now opens as a full real page (the original
+   #creator panel) instead of a small floating window, so it feels like a
+   real website builder rather than a popup app. */
 function toggleView(id){
   const views=['results-view','creator','my-sites','debug-panel'];
   const hideSearch=!['results-view','__none__'].includes(id);
   document.getElementById('searchUI').style.display=hideSearch?'none':'flex';
   views.forEach(v=>{const el=document.getElementById(v);if(el)el.style.display='none';});
   if(id==='__none__')return;
-  if(id==='creator'){
-    const existing=document.getElementById('editor-float-win');
-    if(existing)existing.remove();
-
-    const wrapper=document.createElement('div');
-    wrapper.style.cssText='width:100%;height:100%;display:flex;flex-direction:column;background:white;position:relative;';
-
-    // slim toolbar toggle bar
-    const toggleBtn=document.createElement('button');
-    toggleBtn.textContent='▼ TOOLS';
-    toggleBtn.style.cssText='width:100%;background:#2a2a2e;color:#e8eaed;border:none;padding:4px;cursor:pointer;font-size:11px;letter-spacing:1px;flex-shrink:0;z-index:20;position:relative;';
-
-    // toolbar drawer
-    const drawer=document.createElement('div');
-    drawer.style.cssText='background:#2a2a2e;display:flex;flex-wrap:wrap;gap:4px;padding:0 8px;max-height:0;overflow:hidden;transition:max-height 0.25s ease,padding 0.25s ease;flex-shrink:0;';
-
-    // clone all toolbar buttons into drawer
-    const srcToolbar=document.getElementById('creator').querySelector('.doc-toolbar');
-    Array.from(srcToolbar.children).forEach(child=>{
-      drawer.appendChild(child.cloneNode(true));
-    });
-
-    // publish and update inside drawer
-    const saveB=document.createElement('button');
-    saveB.id='fw-saveBtn';
-    saveB.className='btn btn-purple';
-    saveB.textContent='💾 UPDATE';
-    saveB.style.display='none';
-    saveB.onclick=updateSite;
-    const pubB=document.createElement('button');
-    pubB.id='fw-publishBtn';
-    pubB.className='btn btn-green';
-    pubB.textContent='🌐 PUBLISH';
-    pubB.onclick=publishSite;
-    drawer.appendChild(saveB);
-    drawer.appendChild(pubB);
-
-    let drawerOpen=false;
-    toggleBtn.onclick=()=>{
-      drawerOpen=!drawerOpen;
-      drawer.style.maxHeight=drawerOpen?'200px':'0';
-      drawer.style.padding=drawerOpen?'6px 8px':'0 8px';
-      toggleBtn.textContent=drawerOpen?'▲ TOOLS':'▼ TOOLS';
-    };
-
-    // full white canvas
-    const canvas=document.createElement('div');
-    canvas.style.cssText='flex:1;position:relative;overflow:hidden;background:white;';
-    const bg=document.createElement('div');
-    bg.id='fw-richEditor';
-    bg.style.cssText='position:absolute;inset:0;background:white;pointer-events:none;';
-    const overlay=document.createElement('div');
-    overlay.id='fw-overlay';
-    overlay.style.cssText='position:absolute;inset:0;pointer-events:none;z-index:10;';
-    canvas.appendChild(bg);
-    canvas.appendChild(overlay);
-
-    wrapper.appendChild(toggleBtn);
-    wrapper.appendChild(drawer);
-    wrapper.appendChild(canvas);
-
-    const fw=makeFloatingWindow(wrapper,'✎ Site Editor');
-    fw.id='editor-float-win';
-    fw.style.width='900px';
-    fw.style.height='560px';
-    fw.style.left=((window.innerWidth-900)/2)+'px';
-    fw.style.top=((window.innerHeight-560)/2)+'px';
-    return;
-  }
   const target=document.getElementById(id); if(!target)return;
   target.style.display='block';
 }
 window.toggleView=toggleView;
 
-/* ── LAUNCH SITE ── */
+/* ── LAUNCH SITE ──
+   FIX: viewing a published/saved site now takes over the full screen with a
+   brief "connecting…" loading animation first, then reveals the page with
+   just a thin close bar — making it feel like visiting a real live website
+   rather than opening a little app window. */
 async function launchSite(id){
   await loadAllData();
   const site=netData[id]; if(!site){jAlert('Site not found.');return;}
   const bg=site.bgColor||'#ffffff';
-  const wrap=document.createElement('div'); wrap.style.cssText='width:100%;height:100%;position:relative;background:'+bg+';overflow:auto;';
-  const content=document.createElement('div'); content.style.cssText='position:relative;width:100%;min-height:100%;background:'+bg+';';
-  if(site.h){const hDiv=document.createElement('div');hDiv.innerHTML=site.h;content.appendChild(hDiv);}
+
+  const prevUrl=window.location.href;
+  history.pushState({jatSite:id}, '', '#/'+id+'.jat');
+
+  const stage=document.createElement('div');
+  stage.id='site-view-stage';
+  stage.style.cssText='position:fixed;inset:0;background:#0a0a0a;z-index:99998;display:flex;align-items:center;justify-content:center;font-family:Outfit,sans-serif;';
+  stage.innerHTML=`
+    <div style="text-align:center;color:#e8eaed;">
+      <div style="width:46px;height:46px;border:4px solid #333;border-top-color:#a855f7;border-radius:50%;margin:0 auto 18px;animation:spin .7s linear infinite;"></div>
+      <div style="font-size:13px;letter-spacing:1px;color:#bdc1c6;">CONNECTING TO <b style="color:#a855f7;">${id}.jat</b>…</div>
+    </div>`;
+  document.body.appendChild(stage);
+
+  const loadTime=500+Math.random()*900;
+  await new Promise(r=>setTimeout(r,loadTime));
+
+  const closeBar=document.createElement('div');
+  closeBar.style.cssText='position:fixed;top:0;left:0;right:0;height:38px;background:#171717;display:flex;align-items:center;gap:10px;padding:0 14px;z-index:99999;border-bottom:1px solid #333;';
+  closeBar.innerHTML=`<button id="exitSiteBtn" style="background:#3c4043;color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;">✕ Close</button>
+    <span style="color:#8ab4f8;font-family:'JetBrains Mono',monospace;font-size:12px;">${id}.jat</span>`;
+
+  const content=document.createElement('div');
+  content.style.cssText='position:absolute;top:38px;left:0;right:0;bottom:0;background:'+bg+';overflow:auto;';
+  const inner=document.createElement('div');
+  inner.style.cssText='position:relative;width:100%;min-height:100%;background:'+bg+';';
+  if(site.h){const hDiv=document.createElement('div');hDiv.innerHTML=site.h;inner.appendChild(hDiv);}
   const canvas=document.createElement('div'); canvas.style.cssText='position:relative;width:100%;min-height:500px;';
-  if(site.cards){console.log('CARDS AT VIEW TIME:',site.cards);try{JSON.parse(site.cards).forEach(c=>{
+  if(site.cards){try{JSON.parse(site.cards).forEach(c=>{
     if(c.type==='img'){
       const img=document.createElement('img');
       img.src=c.src;
@@ -999,12 +924,20 @@ async function launchSite(id){
       canvas.appendChild(fr);
     }
   });}catch(e){}}
-  content.appendChild(canvas); wrap.appendChild(content);
-  makeFloatingWindow(wrap,id+'.jat');
+  inner.appendChild(canvas); content.appendChild(inner);
+
+  stage.innerHTML='';
+  stage.style.background=bg;
+  stage.appendChild(closeBar);
+  stage.appendChild(content);
+
+  document.getElementById('exitSiteBtn').onclick=()=>{
+    stage.remove();
+    history.pushState({}, '', prevUrl);
+  };
 }
 window.launchSite=launchSite;
 
-/* ── MY SITES & EDIT ── */
 function renderMySites(){
   if(!loggedIn||!currentUser)return;
   const cont=document.getElementById('my-list'); cont.innerHTML='';
@@ -1025,12 +958,12 @@ function editSite(id){
     document.getElementById('siteName').value=id;
     toggleView('creator');
     setTimeout(()=>{
-      const bg=document.getElementById('fw-richEditor');
-      if(bg){bg.style.background=editorBgColor;if(bg.parentElement)bg.parentElement.style.background=editorBgColor;}
+      const bg=document.getElementById('richEditor');
+      if(bg){bg.style.background=editorBgColor;}
       clearOverlay();
       if(site.cards)restoreOverlayCards(site.cards);
-      const saveB=document.getElementById('fw-saveBtn');
-      const pubB=document.getElementById('fw-publishBtn');
+      const saveB=document.getElementById('saveBtn');
+      const pubB=document.getElementById('publishBtn');
       if(saveB)saveB.style.display='inline-flex';
       if(pubB)pubB.style.display='none';
     },50);
@@ -1038,7 +971,6 @@ function editSite(id){
 }
 window.editSite=editSite;
 
-/* ── SEARCH ── */
 async function executeSearch(){
   const q=(document.getElementById('mainSearch').value||document.getElementById('topUrlBar').value||"").trim();
   if(!q)return; await loadAllData();
@@ -1061,7 +993,6 @@ function renderLinks(q){
   });
 }
 
-/* ── TOOLBAR SYNC ── */
 document.getElementById('richEditor').addEventListener('keyup',syncToolbar);
 document.getElementById('richEditor').addEventListener('mouseup',syncToolbar);
 document.getElementById('richEditor').addEventListener('input',()=>{isDirty=true;});
