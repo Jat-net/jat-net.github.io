@@ -266,31 +266,32 @@ function _wrapHtmlForCard(htmlString){
   //    iframe box with no clipping — ever.
   // The _fit() function reruns on load, resize, and any postMessage('_fit')
   // from the parent (sent whenever the card is drag-resized).
+  // Content is wrapped in #_wrap so we can always measure its TRUE natural
+  // size — independent of any previously applied scale or body dimensions.
+  // _fit() then scales #_wrap up OR down to fill the iframe box exactly,
+  // making EVERYTHING visible with no clipping in either direction.
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;overflow:hidden;}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:transparent;}
+#_wrap{display:inline-block;transform-origin:0 0;}
 </style><script>
 function _fit(){
-  var b=document.body;
-  // reset so we can measure natural content size
-  b.style.transform='';b.style.width='';b.style.height='';b.style.overflow='visible';
-  var nw=Math.max(b.scrollWidth,b.offsetWidth,1);
-  var nh=Math.max(b.scrollHeight,b.offsetHeight,1);
+  var wrap=document.getElementById('_wrap');
+  if(!wrap)return;
+  // reset transform so we measure the true natural content size
+  wrap.style.transform='';
+  var nw=wrap.offsetWidth||1;
+  var nh=wrap.offsetHeight||1;
   var fw=window.innerWidth||1;
   var fh=window.innerHeight||1;
-  var s=Math.min(fw/nw, fh/nh); // scale to fit both axes
-  b.style.transformOrigin='0 0';
-  b.style.transform='scale('+s+')';
-  // after scaling, the effective content area is fw/s × fh/s
-  // so set body width/height to that so scrollbars never appear
-  b.style.width=(fw/s)+'px';
-  b.style.height=(fh/s)+'px';
-  b.style.overflow='hidden';
+  // scale in BOTH directions: shrink if content is too big, grow if too small
+  var s=Math.min(fw/nw, fh/nh);
+  wrap.style.transform='scale('+s+')';
 }
 window.addEventListener('load',function(){setTimeout(_fit,0);});
 window.addEventListener('resize',_fit);
 window.addEventListener('message',function(e){if(e.data==='_fit')_fit();});
-<\/script></head><body>${htmlString}</body></html>`;
+<\/script></head><body><div id="_wrap">${htmlString}</div></body></html>`;
 }
 function insertHTMLCard(htmlString){
   const w=document.createElement('div'); w.className='html-card'; w.style.cssText='width:100%;height:100%;padding:0;overflow:hidden;';
