@@ -259,18 +259,41 @@ function insertImgCard(src){
   const card=_makeOverlayCard(img,''); card.style.width='280px'; card.style.height='200px';
 }
 function _wrapHtmlForCard(htmlString){
-  // Inject CSS that forces every element inside the card to fill and
-  // auto-format itself to the box size.
-  return '<style>'
-    +'*{box-sizing:border-box;max-width:100%;}'
-    +'html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}'
-    +'img,video,canvas,svg{width:100%;height:auto;display:block;}'
-    +'button,input,select,textarea{width:100%;font-size:inherit;}'
-    +'</style>'
-    +htmlString;
+  // Wraps user HTML in a full srcdoc that:
+  // 1. Renders the content at its natural size
+  // 2. Measures that natural size
+  // 3. Scales the entire body down (or up) so EVERYTHING fits inside the
+  //    iframe box with no clipping — ever.
+  // The _fit() function reruns on load, resize, and any postMessage('_fit')
+  // from the parent (sent whenever the card is drag-resized).
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;overflow:hidden;}
+</style><script>
+function _fit(){
+  var b=document.body;
+  // reset so we can measure natural content size
+  b.style.transform='';b.style.width='';b.style.height='';b.style.overflow='visible';
+  var nw=Math.max(b.scrollWidth,b.offsetWidth,1);
+  var nh=Math.max(b.scrollHeight,b.offsetHeight,1);
+  var fw=window.innerWidth||1;
+  var fh=window.innerHeight||1;
+  var s=Math.min(fw/nw, fh/nh); // scale to fit both axes
+  b.style.transformOrigin='0 0';
+  b.style.transform='scale('+s+')';
+  // after scaling, the effective content area is fw/s × fh/s
+  // so set body width/height to that so scrollbars never appear
+  b.style.width=(fw/s)+'px';
+  b.style.height=(fh/s)+'px';
+  b.style.overflow='hidden';
+}
+window.addEventListener('load',function(){setTimeout(_fit,0);});
+window.addEventListener('resize',_fit);
+window.addEventListener('message',function(e){if(e.data==='_fit')_fit();});
+<\/script></head><body>${htmlString}</body></html>`;
 }
 function insertHTMLCard(htmlString){
-  const w=document.createElement('div'); w.className='html-card'; w.style.cssText='width:100%;height:100%;padding:0;';
+  const w=document.createElement('div'); w.className='html-card'; w.style.cssText='width:100%;height:100%;padding:0;overflow:hidden;';
   const iframe=document.createElement('iframe');
   iframe.style.cssText='width:100%;height:100%;border:none;display:block;';
   iframe.setAttribute('sandbox','allow-scripts allow-same-origin');
@@ -278,13 +301,13 @@ function insertHTMLCard(htmlString){
   iframe.srcdoc=_wrapHtmlForCard(htmlString);
   w.appendChild(iframe);
   const card=_makeOverlayCard(w,'html-card'); card.style.width='500px'; card.style.height='320px';
-  // keep iframe filling card on every resize
-  if(window.ResizeObserver){
-    new ResizeObserver(()=>{
-      iframe.style.width=card.offsetWidth+'px';
-      iframe.style.height=card.offsetHeight+'px';
-    }).observe(card);
-  }
+  // whenever the card is resized, tell the iframe to re-fit its content
+  const triggerFit=()=>{
+    iframe.style.width='100%'; iframe.style.height='100%';
+    try{iframe.contentWindow.postMessage('_fit','*');}catch(e){}
+  };
+  iframe.addEventListener('load',()=>setTimeout(triggerFit,0));
+  if(window.ResizeObserver){new ResizeObserver(triggerFit).observe(card);}
 }
 function serializeOverlayCards(){
   const overlay=document.getElementById('fw-overlay')||document.getElementById('imgDragOverlay');
